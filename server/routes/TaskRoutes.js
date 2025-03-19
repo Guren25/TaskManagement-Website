@@ -33,4 +33,6 @@ router.patch('/:taskId/subtask/:subtaskId/status', taskController.updateSubtaskS
 // Status update routes
 router.patch('/:id/status', taskController.updateTaskStatus);
 
+router.get('/:taskId/subtask/filter/priority/:Priority', taskController.getSubtasksByPriority);
+
 module.exports = router;

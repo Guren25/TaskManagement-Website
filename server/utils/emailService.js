@@ -1,15 +1,29 @@
 const nodemailer = require('nodemailer');
 
-// Create a transporter using SMTP
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // You can change this to other email services
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD
+    },
+    tls: {
+        rejectUnauthorized: true
     }
 });
 
-// Function to send task assignment email
+const verifyConnection = async () => {
+    try {
+        await transporter.verify();
+        console.log('Email service is ready');
+    } catch (error) {
+        console.error('Email service configuration error:', error.message);
+    }
+};
+
+verifyConnection();
+
 const sendTaskAssignmentEmail = async (recipientEmail, taskDetails) => {
     try {
         const mailOptions = {
@@ -26,7 +40,7 @@ const sendTaskAssignmentEmail = async (recipientEmail, taskDetails) => {
                 <p><strong>End Date:</strong> ${new Date(taskDetails.EndDate).toLocaleDateString()}</p>
                 <p><strong>Assigned By:</strong> ${taskDetails.AssignedBy}</p>
                 <br>
-                <p>Please log in to the task management system to view more details and start working on your task.</p>
+                <p>Please log in to the system to view more details and start working on your task.</p>
             `
         };
 
@@ -39,7 +53,6 @@ const sendTaskAssignmentEmail = async (recipientEmail, taskDetails) => {
     }
 };
 
-// Function to send subtask assignment email
 const sendSubtaskAssignmentEmail = async (recipientEmail, mainTask, subtask) => {
     try {
         const mailOptions = {
@@ -51,9 +64,10 @@ const sendSubtaskAssignmentEmail = async (recipientEmail, mainTask, subtask) => 
                 <p><strong>Main Task:</strong> ${mainTask.TaskName}</p>
                 <p><strong>Subtask Name:</strong> ${subtask.TaskName}</p>
                 <p><strong>Location:</strong> ${mainTask.Location}</p>
+                <p><strong>Priority:</strong> ${subtask.Priority}</p>
                 <p><strong>Main Task Due Date:</strong> ${new Date(mainTask.EndDate).toLocaleDateString()}</p>
                 <br>
-                <p>Please log in to the task management system to view more details and start working on your subtask.</p>
+                <p>Please log in to the system to view more details and start working on your subtask.</p>
             `
         };
 

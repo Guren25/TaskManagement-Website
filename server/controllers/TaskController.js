@@ -42,6 +42,15 @@ const taskController = {
         try {
             const { TaskName, Description, Location, Priority, Status, AssignedTo, AssignedBy, StartDate, EndDate, subtask } = req.body;
             
+            // Add default Priority to subtasks if missing
+            if (subtask && subtask.length > 0) {
+                subtask.forEach(sub => {
+                    if (!sub.Priority) {
+                        sub.Priority = 'medium'; // Default priority
+                    }
+                });
+            }
+            
             const task = new Task({ 
                 TaskName, 
                 Description, 
@@ -54,15 +63,11 @@ const taskController = {
                 EndDate, 
                 subtask
             });
-
-            // Percentage will be calculated automatically by the pre-save middleware
             await task.save();
 
-            // Send email notification to assigned user
             try {
                 await sendTaskAssignmentEmail(task.AssignedTo, task);
                 
-                // Send emails for subtasks if any
                 if (task.subtask && task.subtask.length > 0) {
                     for (const subtask of task.subtask) {
                         await sendSubtaskAssignmentEmail(subtask.AssignedTo, task, subtask);
@@ -70,7 +75,6 @@ const taskController = {
                 }
             } catch (emailError) {
                 console.error('Error sending email notification:', emailError);
-                // Continue with task creation even if email fails
             }
 
             res.status(201).json(task);
@@ -236,18 +240,28 @@ const taskController = {
 
     addSubtask: async (req, res) => {
         try {
-            const { taskId } = req.params;
-            const subtaskData = req.body;
+            const taskId = req.params.id;
+            const { TaskName, AssignedTo, Status, Priority } = req.body;
+
+            if (!TaskName || !AssignedTo || !Priority) {
+                return res.status(400).json({ message: "TaskName, AssignedTo, and Priority are required fields" });
+            }
 
             const task = await Task.findById(taskId);
             if (!task) {
-                return res.status(404).json({ message: 'Task not found' });
+                return res.status(404).json({ message: "Task not found" });
             }
+
+            const subtaskData = {
+                TaskName,
+                AssignedTo,
+                Status: Status || 'not-started',
+                Priority
+            };
 
             task.subtask.push(subtaskData);
             await task.save();
 
-            // Send email notification for the new subtask
             try {
                 const newSubtask = task.subtask[task.subtask.length - 1];
                 await sendSubtaskAssignmentEmail(newSubtask.AssignedTo, task, newSubtask);
@@ -277,7 +291,6 @@ const taskController = {
             }
 
             subtask.Status = Status;
-            // Recalculate percentage after updating subtask status
             task.percentage = calculateTaskPercentage(task.subtask);
             await task.save();
 
@@ -299,7 +312,6 @@ const taskController = {
 
             task.Status = Status;
             
-            // If marking task as completed, mark all subtasks as completed
             if (Status === 'completed') {
                 task.subtask.forEach(subtask => {
                     subtask.Status = 'completed';
@@ -311,7 +323,6 @@ const taskController = {
                 });
                 task.percentage = 0;
             } else {
-                // For in-progress, calculate based on subtasks
                 task.percentage = calculateTaskPercentage(task.subtask);
             }
 
@@ -319,6 +330,25 @@ const taskController = {
             res.status(200).json(task);
         } catch (error) {
             res.status(500).json({ message: "Error updating task status", error: error.message });
+        }
+    },
+
+    getSubtasksByPriority: async (req, res) => {
+        try {
+            const { taskId, Priority } = req.params;
+            
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({ message: "Task not found" });
+            }
+            
+            const filteredSubtasks = task.subtask.filter(subtask => 
+                subtask.Priority.toLowerCase() === Priority.toLowerCase()
+            );
+            
+            res.status(200).json(filteredSubtasks);
+        } catch (error) {
+            res.status(500).json({ message: "Error filtering subtasks", error: error.message });
         }
     }
 };
