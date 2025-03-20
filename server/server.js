@@ -25,8 +25,8 @@ const connectDB = async () => {
 
 connectDB();
 
-app.use('/users', userRoutes);
-app.use('/tasks', taskRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/tasks', taskRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

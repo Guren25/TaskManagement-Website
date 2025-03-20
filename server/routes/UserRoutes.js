@@ -3,8 +3,8 @@ const router = express.Router();
 const userController = require('../controllers/UserController');
 
 // Authentication routes
-router.post('/login', userController.loginUser);
-router.post('/register', userController.registerUser);
+router.post('/login', userController.login);
+router.post('/register', userController.createUser);
 
 // User management routes
 router.get('/', userController.getAllUsers);

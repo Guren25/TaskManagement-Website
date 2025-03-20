@@ -41,8 +41,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setError(null);
-      // Update this endpoint to match your server route
-      const res = await axios.post('/users/login', { email, password });
+      const res = await axios.post('/api/users/login', { email, password });
       setToken(res.data.token);
       setUser(res.data.user);
       localStorage.setItem('user', JSON.stringify(res.data.user));
