@@ -8,7 +8,8 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js';
 import axios from 'axios';
 import TaskModal from './TaskModal';
@@ -22,7 +23,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 const formatDate = (dateString) => {
@@ -49,6 +51,7 @@ const AdminDashboard = () => {
   const [expandedTasks, setExpandedTasks] = useState({});
   const [activityLog, setActivityLog] = useState([]);
   const [expandedFilters, setExpandedFilters] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState({});
 
   useEffect(() => {
     fetchTasks().then(() => fetchActivityLog());
@@ -70,76 +73,8 @@ const AdminDashboard = () => {
 
   const fetchActivityLog = async () => {
     try {
-      // This is a placeholder - you may need to implement this API endpoint
-      // Alternatively, we're generating sample activity logs below
-      
-      // Generate sample activity logs based on tasks
-      const logs = [];
-      
-      tasks.forEach(task => {
-        // Log for task creation
-        logs.push({
-          _id: `task-created-${task._id}`,
-          type: 'task-created',
-          taskName: task.TaskName,
-          user: task.AssignedBy,
-          timestamp: task.CreatedAt,
-          message: `Task "${task.TaskName}" created by ${task.AssignedBy}`
-        });
-        
-        // Log for task status changes
-        if (task.Status === 'completed') {
-          logs.push({
-            _id: `task-completed-${task._id}`,
-            type: 'task-completed',
-            taskName: task.TaskName,
-            user: task.AssignedTo,
-            timestamp: task.UpdatedAt,
-            message: `Task "${task.TaskName}" completed by ${task.AssignedTo}`
-          });
-        } else if (task.Status === 'in-progress') {
-          logs.push({
-            _id: `task-progress-${task._id}`,
-            type: 'task-progress',
-            taskName: task.TaskName,
-            user: task.AssignedTo,
-            timestamp: task.UpdatedAt,
-            message: `Task "${task.TaskName}" marked in-progress by ${task.AssignedTo}`
-          });
-        }
-        
-        // Logs for subtasks
-        if (task.subtask && task.subtask.length > 0) {
-          task.subtask.forEach((subtask, index) => {
-            logs.push({
-              _id: `subtask-added-${task._id}-${index}`,
-              type: 'subtask-added',
-              taskName: task.TaskName,
-              subtaskName: subtask.TaskName,
-              user: task.AssignedBy,
-              timestamp: task.CreatedAt,
-              message: `Subtask "${subtask.TaskName}" added to "${task.TaskName}" by ${task.AssignedBy}`
-            });
-            
-            if (subtask.Status === 'completed') {
-              logs.push({
-                _id: `subtask-completed-${task._id}-${index}`,
-                type: 'subtask-completed',
-                taskName: task.TaskName,
-                subtaskName: subtask.TaskName,
-                user: subtask.AssignedTo,
-                timestamp: task.UpdatedAt,
-                message: `Subtask "${subtask.TaskName}" completed by ${subtask.AssignedTo}`
-              });
-            }
-          });
-        }
-      });
-      
-      // Sort logs by timestamp, most recent first
-      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      
-      setActivityLog(logs);
+      const response = await axios.get('/api/activity-logs/recent');
+      setActivityLog(response.data);
     } catch (error) {
       console.error('Error fetching activity logs:', error);
     }
@@ -170,6 +105,13 @@ const AdminDashboard = () => {
     }));
   };
 
+  const toggleLogExpansion = (logId) => {
+    setExpandedLogs(prev => ({
+      ...prev,
+      [logId]: !prev[logId]
+    }));
+  };
+
   const prepareChartData = () => {
     const last30Days = [...Array(30)].map((_, i) => {
       const d = new Date();
@@ -177,36 +119,20 @@ const AdminDashboard = () => {
       return d.toISOString().split('T')[0];
     }).reverse();
 
-    // Track completed tasks (main tasks + subtasks)
     const completedTasksByDate = {};
-    
-    // Track newly added tasks
     const createdTasksByDate = {};
-    
-    // Track subtasks
     const subtasksByDate = {};
-    
-    // Process main tasks
     tasks.forEach(task => {
-      // For task creation date
       const creationDate = new Date(task.CreatedAt).toISOString().split('T')[0];
       createdTasksByDate[creationDate] = (createdTasksByDate[creationDate] || 0) + 1;
-      
-      // For completed main tasks
       if (task.Status === 'completed') {
         const completionDate = new Date(task.UpdatedAt).toISOString().split('T')[0];
         completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + 1;
       }
-      
-      // Process subtasks
       if (task.subtask && task.subtask.length > 0) {
-        // Track total subtasks by task creation date (assuming subtasks are created with the task)
         subtasksByDate[creationDate] = (subtasksByDate[creationDate] || 0) + task.subtask.length;
-        
-        // Count completed subtasks
         task.subtask.forEach(subtask => {
           if (subtask.Status === 'completed') {
-            // Assuming subtasks are updated at the same time as the parent task
             const completionDate = new Date(task.UpdatedAt).toISOString().split('T')[0];
             completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + 1;
           }
@@ -223,7 +149,7 @@ const AdminDashboard = () => {
         {
           label: 'Completed Tasks',
           data: last30Days.map(date => completedTasksByDate[date] || 0),
-          borderColor: '#34C759', // Green color for completions
+          borderColor: '#34C759', 
           backgroundColor: 'rgba(52, 199, 89, 0.1)',
           borderWidth: 2,
           pointBackgroundColor: '#34C759',
@@ -237,7 +163,7 @@ const AdminDashboard = () => {
         {
           label: 'New Tasks',
           data: last30Days.map(date => createdTasksByDate[date] || 0),
-          borderColor: '#007AFF', // Blue color for new tasks
+          borderColor: '#007AFF', 
           backgroundColor: 'rgba(0, 122, 255, 0.1)',
           borderWidth: 2,
           pointBackgroundColor: '#007AFF',
@@ -251,7 +177,7 @@ const AdminDashboard = () => {
         {
           label: 'Subtasks',
           data: last30Days.map(date => subtasksByDate[date] || 0),
-          borderColor: '#FF9500', // Orange color for subtasks
+          borderColor: '#FF9500',
           backgroundColor: 'rgba(255, 149, 0, 0.1)',
           borderWidth: 2,
           pointBackgroundColor: '#FF9500',
@@ -342,7 +268,6 @@ const AdminDashboard = () => {
     setTasks([...tasks, newTask]);
     setFilteredTasks([...filteredTasks, newTask]);
     
-    // Add activity log for new task
     const newLog = {
       _id: `task-created-${newTask._id}`,
       type: 'task-created',
@@ -352,7 +277,6 @@ const AdminDashboard = () => {
       message: `Task "${newTask.TaskName}" created by ${newTask.AssignedBy}`
     };
     
-    // Add subtask logs if any
     const subtaskLogs = newTask.subtask && newTask.subtask.length > 0 ? 
       newTask.subtask.map((subtask, index) => ({
         _id: `subtask-added-${newTask._id}-${index}`,
@@ -388,6 +312,95 @@ const AdminDashboard = () => {
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     return format(date, 'MM/dd/yy hh:mm a');
+  };
+
+  const renderLogDetails = (log) => {
+    if (!log) return null;
+
+    const getFormattedValue = (value) => {
+      if (!value) return null;
+      return {
+        Task: value.TaskName,
+        Location: value.Location,
+        Priority: value.Priority,
+        Status: value.Status,
+        "Assigned To": value.AssignedTo,
+        "Start Date": formatDate(value.StartDate),
+        "End Date": formatDate(value.EndDate),
+        "Task ID": value.TaskID
+      };
+    };
+
+    const getSummaryMessage = () => {
+      const taskName = log.newValue?.TaskName || log.oldValue?.TaskName;
+      switch (log.changeType) {
+        case 'Created':
+          return `New task "${taskName}" created`;
+        case 'Updated':
+          if (log.newValue?.Status !== log.oldValue?.Status) {
+            return `Task "${taskName}" status changed to ${log.newValue.Status}`;
+          }
+          return `Task "${taskName}" updated`;
+        case 'Deleted':
+          return `Task "${taskName}" deleted`;
+        default:
+          return `Task "${taskName}" modified`;
+      }
+    };
+
+    return (
+      <div className="log-entry" key={log.logID}>
+        <div 
+          className="log-header"
+          onClick={() => toggleLogExpansion(log.logID)}
+        >
+          <div className="log-title">
+            <span className={`change-type ${log.changeType ? log.changeType.toLowerCase() : ''}`}>
+              {log.changeType || 'N/A'}
+            </span>
+            <span className="log-summary">{getSummaryMessage()}</span>
+          </div>
+          <div className="log-meta">
+            <span className="log-user">{log.changedBy}</span>
+            <span className="log-timestamp">{formatTimestamp(log.timestamp)}</span>
+            <span className={`expand-icon ${expandedLogs[log.logID] ? 'expanded' : ''}`}>▼</span>
+          </div>
+        </div>
+        
+        {expandedLogs[log.logID] && (
+          <div className="log-content">
+            <div className="log-grid">
+              {log.oldValue && log.newValue && (
+                Object.entries(getFormattedValue(log.newValue)).map(([key, newValue]) => {
+                  const oldValue = getFormattedValue(log.oldValue)[key];
+                  if (oldValue !== newValue) {
+                    return (
+                      <div key={key} className="change-item">
+                        <span className="change-key">{key}</span>
+                        <div className="change-values">
+                          <span className="old-value">{oldValue}</span>
+                          <span className="arrow">→</span>
+                          <span className="new-value">{newValue}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })
+              )}
+              {!log.oldValue && log.newValue && (
+                Object.entries(getFormattedValue(log.newValue)).map(([key, value]) => (
+                  <div key={key} className="change-item">
+                    <span className="change-key">{key}</span>
+                    <span className="change-value">{value}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -614,14 +627,7 @@ const AdminDashboard = () => {
             {activityLog.length === 0 ? (
               <div className="no-activity">No recent activity</div>
             ) : (
-              <div className="log-entries">
-                {activityLog.map(log => (
-                  <div key={log._id} className={`log-entry ${log.type}`}>
-                    <div className="log-message">{log.message}</div>
-                    <div className="log-timestamp">{formatTimestamp(log.timestamp)}</div>
-                  </div>
-                ))}
-              </div>
+              activityLog.map(log => renderLogDetails(log))
             )}
           </div>
         </div>

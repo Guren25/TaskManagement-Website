@@ -11,7 +11,7 @@ const Signup = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'client' // Default role
+    role: 'client' 
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);

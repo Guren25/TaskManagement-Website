@@ -43,7 +43,6 @@ const Login = () => {
         navigate('/dashboard');
       } catch (err) {
         console.error("Login error details:", err);
-        // You can display a more user-friendly message here if needed
       } finally {
         setIsSubmitting(false);
       }

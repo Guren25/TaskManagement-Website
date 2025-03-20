@@ -1,5 +1,7 @@
 const Task = require('../models/Task');
 const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail } = require('../utils/emailService');
+const ActivityLog = require('../models/ActivityLog');
+const { v4: uuidv4 } = require('uuid');
 
 const calculateTaskPercentage = (subtasks) => {
     if (!subtasks || subtasks.length === 0) return 0;
@@ -63,8 +65,18 @@ const taskController = {
                 EndDate, 
                 subtask
             });
-            await task.save();
-
+            const savedTask = await task.save();
+            
+            const activityLog = new ActivityLog({
+                logID: uuidv4(),
+                taskID: savedTask._id,
+                changedBy: req.body.AssignedBy,
+                changeType: 'Created',
+                newValue: savedTask,
+                timestamp: new Date()
+            });
+            await activityLog.save();
+            
             try {
                 await sendTaskAssignmentEmail(task.AssignedTo, task);
                 
@@ -77,40 +89,58 @@ const taskController = {
                 console.error('Error sending email notification:', emailError);
             }
 
-            res.status(201).json(task);
+            res.status(201).json(savedTask);
         } catch (error) {
-            res.status(500).json({ message: "Error creating task", error: error.message });
+            res.status(400).json({ message: error.message });
         }
     },
 
     updateTask: async (req, res) => {
         try {
-            const { TaskID, TaskName, Description, Location, Priority, Status, AssignedTo, AssignedBy, StartDate, EndDate, subtask } = req.body;
-            const updateData = { 
-                TaskID, 
-                TaskName, 
-                Description, 
-                Location, 
-                Priority, 
-                Status, 
-                AssignedTo, 
-                AssignedBy, 
-                StartDate, 
-                EndDate, 
-                subtask
-            };
-            if (subtask) {
-                updateData.percentage = calculateTaskPercentage(subtask);
+            const oldTask = await Task.findById(req.params.id);
+            const updateData = req.body;
+            
+            if (updateData.subtask) {
+                updateData.percentage = calculateTaskPercentage(updateData.subtask);
             }
-            const task = await Task.findByIdAndUpdate(
-                req.params.id, 
-                updateData, 
+            
+            // Check if task is being completed
+            if (updateData.Status === 'completed' && oldTask.Status !== 'completed') {
+                const activityLog = new ActivityLog({
+                    logID: uuidv4(),
+                    taskID: oldTask._id,
+                    changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                    changeType: 'Updated',
+                    oldValue: { Status: oldTask.Status },
+                    newValue: { Status: 'completed' },
+                    timestamp: new Date()
+                });
+                await activityLog.save();
+            }
+            
+            const updatedTask = await Task.findByIdAndUpdate(
+                req.params.id,
+                updateData,
                 { new: true }
             );
-            if(!task){
+            
+            if (!updatedTask) {
                 return res.status(404).json({ message: "Task not found" });
             }
-            res.status(200).json(task);
+            
+            // Create general update log
+            const activityLog = new ActivityLog({
+                logID: uuidv4(),
+                taskID: updatedTask._id,
+                changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                changeType: 'Updated',
+                oldValue: oldTask,
+                newValue: updatedTask,
+                timestamp: new Date()
+            });
+            await activityLog.save();
+            
+            res.status(200).json(updatedTask);
         } catch (error) {
             res.status(500).json({ message: "Error updating task", error: error.message });
         }
@@ -278,31 +308,36 @@ const taskController = {
     updateSubtaskStatus: async (req, res) => {
         try {
             const { taskId, subtaskId } = req.params;
-            const { Status } = req.body;
-
+            const { Status, ChangedBy } = req.body;
+            
+            const oldTask = await Task.findById(taskId);
+            const oldSubtask = oldTask.subtask.id(subtaskId);
+            
             const task = await Task.findById(taskId);
-            if (!task) {
-                return res.status(404).json({ message: "Task not found" });
-            }
-
             const subtask = task.subtask.id(subtaskId);
-            if (!subtask) {
-                return res.status(404).json({ message: "Subtask not found" });
-            }
-
             subtask.Status = Status;
             task.percentage = calculateTaskPercentage(task.subtask);
             
-            // Add logic to update main task status
             if (task.subtask.some(sub => ['in-progress', 'completed'].includes(sub.Status))) {
                 task.Status = 'in-progress';
             }
-            // If all subtasks are completed, mark main task as completed
             if (task.subtask.every(sub => sub.Status === 'completed')) {
                 task.Status = 'completed';
             }
-
+            
             await task.save();
+            
+            const activityLog = new ActivityLog({
+                logID: uuidv4(),
+                taskID: taskId,
+                changedBy: ChangedBy,
+                changeType: 'Updated',
+                oldValue: { subtask: oldSubtask },
+                newValue: { subtask: subtask },
+                timestamp: new Date()
+            });
+            await activityLog.save();
+            
             res.status(200).json(task);
         } catch (error) {
             res.status(500).json({ message: "Error updating subtask status", error: error.message });
@@ -311,14 +346,17 @@ const taskController = {
 
     updateTaskStatus: async (req, res) => {
         try {
-            const taskId = req.params.id;
             const { Status } = req.body;
-
-            const task = await Task.findById(taskId);
-            if (!task) {
+            const taskId = req.params.id;
+            
+            // Get the old task state
+            const oldTask = await Task.findById(taskId);
+            if (!oldTask) {
                 return res.status(404).json({ message: "Task not found" });
             }
 
+            const task = await Task.findById(taskId);
+            const oldStatus = task.Status;
             task.Status = Status;
             
             if (Status === 'completed') {
@@ -336,6 +374,22 @@ const taskController = {
             }
 
             await task.save();
+
+            // Create activity log entry for status change
+            const activityLog = new ActivityLog({
+                logID: uuidv4(),
+                taskID: taskId,
+                changedBy: req.body.ChangedBy || 'System',
+                changeType: 'Updated',
+                oldValue: { Status: oldStatus },
+                newValue: { 
+                    TaskName: task.TaskName,
+                    Status: Status 
+                },
+                timestamp: new Date()
+            });
+            await activityLog.save();
+
             res.status(200).json(task);
         } catch (error) {
             res.status(500).json({ message: "Error updating task status", error: error.message });

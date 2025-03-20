@@ -595,10 +595,9 @@ select.filter-input {
 
 /* Activity Log Styles */
 .activity-log {
-  max-height: calc(100vh - 280px);
+  max-height: 600px;
   overflow-y: auto;
-  padding: 0.75rem;
-  width: 100%;
+  padding: 1rem;
 }
 
 .activity-log-panel {
@@ -621,51 +620,105 @@ select.filter-input {
 }
 
 .log-entry {
-  padding: 0.75rem;
-  border-radius: 6px;
-  background-color: #ffffff;
-  border-left: 3px solid #8e8e93;
-  font-size: 0.85rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  overflow: hidden;
 }
 
-.log-entry.task-created {
-  border-left-color: #007aff;
+.log-header {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-.log-entry.task-completed {
-  border-left-color: #34c759;
+.log-header:hover {
+  background: #f0f2f5;
 }
 
-.log-entry.task-progress {
-  border-left-color: #5856d6;
+.log-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.log-entry.subtask-added {
-  border-left-color: #ff9500;
+.log-summary {
+  font-weight: 500;
+  color: #2c3e50;
 }
 
-.log-entry.subtask-completed {
-  border-left-color: #30d158;
+.log-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.log-timestamp {
-  font-size: 0.7rem;
-  color: #8e8e93;
-  margin-bottom: 0.25rem;
+.expand-icon {
+  color: #666;
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
 }
 
-.log-message {
-  color: #1d1d1f;
-  line-height: 1.4;
+.expand-icon.expanded {
+  transform: rotate(180deg);
 }
 
-.log-more {
-  text-align: center;
+.log-content {
+  padding: 1rem;
+  background: white;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.log-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.change-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   padding: 0.5rem;
-  font-size: 0.75rem;
-  color: #8e8e93;
-  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.change-values {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.old-value {
+  color: #dc3545;
+  text-decoration: line-through;
+}
+
+.arrow {
+  color: #666;
+}
+
+.new-value {
+  color: #28a745;
 }
 
 /* Custom scrollbar for better UX */

@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const taskRoutes = require('./routes/TaskRoutes');
 const userRoutes = require('./routes/UserRoutes');
+const activityLogRoutes = require('./routes/activityLogRoutes');
 const app = express();
 
 app.use(cors());
@@ -27,6 +28,7 @@ connectDB();
 
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/activity-logs', activityLogRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

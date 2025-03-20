@@ -3,7 +3,6 @@ import axios from 'axios';
 import './TaskModal.css';
 
 const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
-  // Get the currently logged in user from localStorage or context
   const [currentUser, setCurrentUser] = useState(null);
   const [taskData, setTaskData] = useState({
     TaskName: '',
@@ -12,7 +11,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     Priority: 'medium',
     Status: 'not-started',
     AssignedTo: '',
-    AssignedBy: '', // This will be automatically set
+    AssignedBy: '', 
     StartDate: '',
     EndDate: '',
     subtask: []
@@ -21,7 +20,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Fetch engineers and get current user on component mount
   useEffect(() => {
     if (isOpen) {
       fetchEngineers();
@@ -30,11 +28,9 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   }, [isOpen]);
 
   const getCurrentUser = () => {
-    // Get the user data from localStorage
     const userData = JSON.parse(localStorage.getItem('user'));
     if (userData && userData.email) {
       setCurrentUser(userData);
-      // Pre-populate the AssignedBy field with the current user's email
       setTaskData(prev => ({
         ...prev,
         AssignedBy: userData.email
@@ -76,7 +72,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         const response = await axios.post('/api/tasks', taskData);
         onTaskCreated(response.data);
         onClose();
-        // Reset form
         setTaskData({
           TaskName: '',
           Description: '',
