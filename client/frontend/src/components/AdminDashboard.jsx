@@ -209,13 +209,15 @@ const AdminDashboard = () => {
       },
       title: {
         display: true,
+        text: 'Activity Graph',
         font: {
-          family: 'SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif',
-          size: 14,
-          weight: '500'
+          size: 16,
+          weight: '600',
+          family: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
         },
         padding: {
-          bottom: 15
+          top: 20,
+          bottom: 20
         }
       },
       tooltip: {
@@ -407,18 +409,8 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <div className="dashboard-header">
         <div>
-          <h1 className="dashboard-title">Task Management</h1>
-          <p className="dashboard-subtitle">
-            Overview of all tasks and their current status
-          </p>
+          <h1 className="dashboard-title">ADMIN DASHBOARD</h1>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="add-task-btn"
-        >
-          <span className="btn-icon">+</span>
-          Add Task
-        </button>
       </div>
       
       <div className="dashboard-metrics">
@@ -453,10 +445,14 @@ const AdminDashboard = () => {
             <Line data={prepareChartData()} options={chartOptions} />
           </div>
         </div>
-        
+
         <div className="task-list-panel">
-          <h2 className="panel-title">Tasks & Subtasks</h2>
-          
+          <div className="task-list-header">
+            <h2>Tasks & Subtasks</h2>
+            <button className="add-task-btn" onClick={() => setIsModalOpen(true)}>
+              Task
+            </button>
+          </div>
           <div className="filter-section">
             <div 
               className="filter-toggle" 
