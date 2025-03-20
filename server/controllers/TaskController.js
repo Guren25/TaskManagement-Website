@@ -292,8 +292,17 @@ const taskController = {
 
             subtask.Status = Status;
             task.percentage = calculateTaskPercentage(task.subtask);
-            await task.save();
+            
+            // Add logic to update main task status
+            if (task.subtask.some(sub => ['in-progress', 'completed'].includes(sub.Status))) {
+                task.Status = 'in-progress';
+            }
+            // If all subtasks are completed, mark main task as completed
+            if (task.subtask.every(sub => sub.Status === 'completed')) {
+                task.Status = 'completed';
+            }
 
+            await task.save();
             res.status(200).json(task);
         } catch (error) {
             res.status(500).json({ message: "Error updating subtask status", error: error.message });
