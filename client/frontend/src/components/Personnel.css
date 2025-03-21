@@ -1,0 +1,218 @@
+.admin-dashboard {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    color: #1d1d1f;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    flex-wrap: nowrap;
+}
+
+.dashboard-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.02em;
+    color: #1d1d1f;
+}
+
+.dashboard-subtitle {
+    margin: 0.25rem 0 0;
+    color: #6e6e73;
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+.table-container {
+    overflow-x: auto;
+    background-color: white;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.data-table th {
+    background-color: #f9f9fb;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #1d1d1f;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    color: #1d1d1f;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.role-badge.admin {
+    background-color: rgba(88, 86, 214, 0.1);
+    color: #5856d6;
+}
+
+.role-badge.manager {
+    background-color: rgba(0, 122, 255, 0.1);
+    color: #007AFF;
+}
+
+.role-badge.engineer {
+    background-color: rgba(52, 199, 89, 0.1);
+    color: #34c759;
+}
+
+.role-badge.client {
+    background-color: rgba(255, 149, 0, 0.1);
+    color: #ff9500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons button {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-btn {
+    background-color: #007AFF;
+    color: white;
+}
+
+.edit-btn:hover {
+    background-color: #0062cc;
+}
+
+.delete-btn {
+    background-color: #ff3b30;
+    color: white;
+}
+
+.delete-btn:hover {
+    background-color: #ff2d55;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.modal-content h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.2rem;
+    color: #1d1d1f;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.6rem;
+    background-color: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #1d1d1f;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.submit-btn, .cancel-btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.submit-btn {
+    background-color: #007AFF;
+    color: white;
+}
+
+.cancel-btn {
+    background-color: #FF3B30;
+    color: white;
+}
+@media (max-width: 768px) {
+    .data-table {
+        font-size: 0.8rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons button {
+        width: 100%;
+    }
+}
+

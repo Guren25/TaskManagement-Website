@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import AdminDashboard from './components/AdminDashboard';
+import Personnel from './components/Personnel';
 import './App.css';
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -27,6 +28,11 @@ function App() {
               <ProtectedAdminRoute>
                 <AdminDashboard />
               </ProtectedAdminRoute>
+            } />
+            <Route path="/personnel" element={
+              <ProtectedRoute>
+                <Personnel />
+              </ProtectedRoute>
             } />
             <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
