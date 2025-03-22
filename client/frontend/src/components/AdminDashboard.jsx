@@ -28,12 +28,100 @@ ChartJS.register(
 );
 
 const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: '2-digit'
-  });
+  return new Date(dateString).toLocaleDateString();
+};
+
+const TaskCard = ({ task, onTaskClick }) => {
+  return (
+    <div className="task-card" onClick={() => onTaskClick(task)}>
+      <div className="task-header">
+        <div className="task-content">
+          <div className="task-info">
+            <div className="task-name">
+              <span className="task-id">{task.TaskID}:</span> {task.TaskName}
+            </div>
+            <div className="task-meta">
+              <span className="task-date">
+                <span className="date-label">Start:</span> {formatDate(task.StartDate)}
+              </span>
+              <span className="task-assignee">Assigned to: {task.AssignedTo}</span>
+              {task.subtask && task.subtask.length > 0 && (
+                <span>Subtasks: {task.subtask.length}</span>
+              )}
+            </div>
+          </div>
+          <div className="task-badges">
+            <span className={`status-badge ${task.Status}`}>
+              {task.Status.replace('-', ' ')}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const calculateMetrics = (tasks) => {
+  return {
+    totalProjects: tasks.length,
+    pending: tasks.filter(task => task.Status === 'not-started').length,
+    overdue: tasks.filter(task => new Date(task.EndDate) < new Date() && task.Status !== 'completed').length,
+    completed: tasks.filter(task => task.Status === 'completed').length
+  };
+};
+const calculateTrend = (currentValue, previousValue) => {
+  const difference = currentValue - previousValue;
+  return {
+    value: Math.abs(difference),
+    isPositive: difference >= 0
+  };
+};
+
+const MetricCard = ({ value, label }) => (
+  <div className="metric-card">
+    <div className="metric-header">
+      <span>{value}</span>
+    </div>
+    <div className="metric-footer">
+      <span>{label}</span>
+    </div>
+  </div>
+);
+
+const LogEntry = ({ log }) => {
+  const getTimeAgo = (timestamp) => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  };
+
+  return (
+    <div className="log-entry">
+      <div className="log-title">
+        <span className="task-name">{log.newValue?.TaskName}</span>
+        <span className={`log-badge ${log.changeType?.toLowerCase()}`}>
+          {log.changeType?.toLowerCase()}
+        </span>
+      </div>
+      
+      {log.oldValue && log.newValue && ['Status'].includes(Object.keys(log.oldValue)[0]) && (
+        <div className="status-change">
+          <span className="old-status">{log.oldValue.Status}</span>
+          <span className="new-status">{log.newValue.Status}</span>
+        </div>
+      )}
+      
+      <div className="log-footer">
+        <span className="log-user">{log.changedBy}</span>
+        <span className="log-time">{getTimeAgo(log.timestamp)}</span>
+      </div>
+    </div>
+  );
 };
 
 const AdminDashboard = () => {
@@ -52,10 +140,45 @@ const AdminDashboard = () => {
   const [activityLog, setActivityLog] = useState([]);
   const [expandedFilters, setExpandedFilters] = useState(false);
   const [expandedLogs, setExpandedLogs] = useState({});
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [metrics, setMetrics] = useState({
+    totalProjects: 0,
+    pending: 0,
+    overdue: 0,
+    completed: 0,
+    trends: {
+      projects: { value: 0, isPositive: true },
+      pending: { value: 0, isPositive: true },
+      overdue: { value: 0, isPositive: true },
+      completed: { value: 0, isPositive: true }
+    }
+  });
+  const [timeRange, setTimeRange] = useState(7);
+  const [uniqueLocations, setUniqueLocations] = useState([]);
+  const [uniqueAssignees, setUniqueAssignees] = useState([]);
+  const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
     fetchTasks().then(() => fetchActivityLog());
   }, []);
+
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (userData) {
+      setCurrentUser(userData);
+    }
+  }, []);
+
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const locations = [...new Set(tasks.map(task => task.Location))].filter(Boolean);
+      const assignees = [...new Set(tasks.map(task => task.AssignedTo))].filter(Boolean);
+      setUniqueLocations(locations);
+      setUniqueAssignees(assignees);
+    }
+  }, [tasks]);
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -80,22 +203,32 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleFilterChange = async (filterType, value) => {
+  const handleFilterChange = (filterType, value) => {
     const newFilters = { ...filters, [filterType]: value };
     setFilters(newFilters);
 
-    if (!value) {
-      setFilteredTasks(tasks);
-      return;
+    let filtered = [...tasks];
+
+    if (newFilters.status) {
+      filtered = filtered.filter(task => task.Status === newFilters.status);
+    }
+    if (newFilters.priority) {
+      filtered = filtered.filter(task => task.Priority === newFilters.priority);
+    }
+    if (newFilters.location) {
+      filtered = filtered.filter(task => task.Location === newFilters.location);
+    }
+    if (newFilters.assignedTo) {
+      filtered = filtered.filter(task => task.AssignedTo === newFilters.assignedTo);
+    }
+    if (newFilters.startDate) {
+      filtered = filtered.filter(task => {
+        const taskDate = new Date(task.StartDate).toISOString().split('T')[0];
+        return taskDate === newFilters.startDate;
+      });
     }
 
-    try {
-      const response = await axios.get(`/api/tasks/filter/${filterType}/${value}`);
-      const data = response.data;
-      setFilteredTasks(data);
-    } catch (error) {
-      console.error('Error applying filter:', error);
-    }
+    setFilteredTasks(filtered);
   };
 
   const toggleTaskExpansion = (taskId) => {
@@ -112,8 +245,8 @@ const AdminDashboard = () => {
     }));
   };
 
-  const prepareChartData = () => {
-    const last30Days = [...Array(30)].map((_, i) => {
+  const prepareChartData = (range = 30) => {
+    const lastNDays = [...Array(range)].map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       return d.toISOString().split('T')[0];
@@ -141,52 +274,46 @@ const AdminDashboard = () => {
     });
 
     return {
-      labels: last30Days.map(date => {
+      labels: lastNDays.map(date => {
         const d = new Date(date);
         return `${d.getMonth() + 1}/${d.getDate()}`;
       }),
       datasets: [
         {
           label: 'Completed Tasks',
-          data: last30Days.map(date => completedTasksByDate[date] || 0),
+          data: lastNDays.map(date => completedTasksByDate[date] || 0),
           borderColor: '#34C759', 
-          backgroundColor: 'rgba(52, 199, 89, 0.1)',
-          borderWidth: 2,
+          backgroundColor: 'rgba(52, 199, 89, 0.12)',
+          borderWidth: 2.5,
           pointBackgroundColor: '#34C759',
           pointBorderColor: '#FFFFFF',
-          pointBorderWidth: 1,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointBorderWidth: 2,
           fill: true,
-          tension: 0.3
+          tension: 0.4
         },
         {
           label: 'New Tasks',
-          data: last30Days.map(date => createdTasksByDate[date] || 0),
-          borderColor: '#007AFF', 
-          backgroundColor: 'rgba(0, 122, 255, 0.1)',
-          borderWidth: 2,
+          data: lastNDays.map(date => createdTasksByDate[date] || 0),
+          borderColor: '#007AFF',
+          backgroundColor: 'rgba(0, 122, 255, 0.08)',
+          borderWidth: 2.5,
           pointBackgroundColor: '#007AFF',
           pointBorderColor: '#FFFFFF',
-          pointBorderWidth: 1,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointBorderWidth: 2,
           fill: true,
-          tension: 0.3
+          tension: 0.4
         },
         {
           label: 'Subtasks',
-          data: last30Days.map(date => subtasksByDate[date] || 0),
+          data: lastNDays.map(date => subtasksByDate[date] || 0),
           borderColor: '#FF9500',
-          backgroundColor: 'rgba(255, 149, 0, 0.1)',
-          borderWidth: 2,
+          backgroundColor: 'rgba(255, 149, 0, 0.08)',
+          borderWidth: 2.5,
           pointBackgroundColor: '#FF9500',
           pointBorderColor: '#FFFFFF',
-          pointBorderWidth: 1,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointBorderWidth: 2,
           fill: true,
-          tension: 0.3
+          tension: 0.4
         }
       ]
     };
@@ -201,32 +328,31 @@ const AdminDashboard = () => {
         labels: {
           font: {
             family: 'SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif',
-            size: 12
+            size: 12,
+            weight: '500'
           },
           usePointStyle: true,
-          padding: 15
-        }
-      },
-      title: {
-        display: true,
-        text: 'Activity Graph',
-        font: {
-          size: 16,
-          weight: '600',
-          family: "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-        },
-        padding: {
-          top: 20,
-          bottom: 20
+          padding: 20,
+          color: '#1d1d1f'
         }
       },
       tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        titleColor: '#000',
-        bodyColor: '#333',
-        borderColor: 'rgba(0, 0, 0, 0.1)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        titleColor: '#1d1d1f',
+        titleFont: {
+          size: 14,
+          weight: '600',
+          family: 'SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif'
+        },
+        bodyColor: '#374151',
+        bodyFont: {
+          size: 13,
+          family: 'SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif'
+        },
+        borderColor: 'rgba(0, 0, 0, 0.05)',
         borderWidth: 1,
         cornerRadius: 8,
+        padding: 12,
         boxPadding: 6,
         usePointStyle: true,
         callbacks: {
@@ -243,25 +369,51 @@ const AdminDashboard = () => {
         grid: {
           display: false
         },
+        border: {
+          display: false
+        },
         ticks: {
           font: {
             family: 'SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif',
-            size: 10
-          }
+            size: 11
+          },
+          color: '#6e6e73',
+          padding: 8
         }
       },
       y: {
         beginAtZero: true,
+        border: {
+          display: false
+        },
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
+          color: 'rgba(0, 0, 0, 0.06)',
+          drawBorder: false,
+          lineWidth: 1
         },
         ticks: {
           precision: 0,
           font: {
             family: 'SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif',
-            size: 10
-          }
+            size: 11
+          },
+          color: '#6e6e73',
+          padding: 8,
+          maxTicksLimit: 5
         }
+      }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    elements: {
+      line: {
+        tension: 0.4
+      },
+      point: {
+        radius: 3,
+        hoverRadius: 5
       }
     }
   };
@@ -364,7 +516,7 @@ const AdminDashboard = () => {
           </div>
           <div className="log-meta">
             <span className="log-user">{log.changedBy}</span>
-            <span className="log-timestamp">{formatTimestamp(log.timestamp)}</span>
+            <span className="log-time">{formatTimestamp(log.timestamp)}</span>
             <span className={`expand-icon ${expandedLogs[log._id] ? 'expanded' : ''}`}>▼</span>
           </div>
         </div>
@@ -405,239 +557,257 @@ const AdminDashboard = () => {
     );
   };
 
+  const handleSortChange = (order) => {
+    setSortOrder(order);
+    const sorted = [...filteredTasks].sort((a, b) => {
+      const dateA = new Date(a.StartDate);
+      const dateB = new Date(b.StartDate);
+      return order === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+    setFilteredTasks(sorted);
+  };
+
   return (
     <div className="admin-dashboard">
       <div className="admin-dashboard-header">
-        <div>
-          <h1 className="admin-dashboard-title">ADMIN DASHBOARD</h1>
-        </div>
-      </div>
-      
-      <div className="dashboard-metrics">
-        <div className="metric-card">
-          <span className="metric-value">{tasks.length}</span>
-          <span className="metric-label">Total Tasks</span>
-        </div>
-        <div className="metric-card">
-          <span className="metric-value">
-            {tasks.filter(task => task.Status === 'completed').length}
-          </span>
-          <span className="metric-label">Completed</span>
-        </div>
-        <div className="metric-card">
-          <span className="metric-value">
-            {tasks.filter(task => task.Status === 'in-progress').length}
-          </span>
-          <span className="metric-label">In Progress</span>
-        </div>
-        <div className="metric-card">
-          <span className="metric-value">
-            {tasks.filter(task => task.Status === 'not-started').length}
-          </span>
-          <span className="metric-label">Not Started</span>
+        <div className="header-left">
+          <h1 className="welcome-text">
+            Welcome back, {currentUser?.firstname || currentUser?.email || 'User'}!
+          </h1>
         </div>
       </div>
 
-      <div className="dashboard-layout two-column">
-        <div className="chart-section">
-          <h2 className="panel-title">Activity Graph</h2>
-          <div className="chart-container">
-            <Line data={prepareChartData()} options={chartOptions} />
+      <div className="dashboard-main">
+        <div className="main-left">
+          <div className="dashboard-metrics">
+            <MetricCard value={metrics.totalProjects} label="Projects" />
+            <MetricCard value={metrics.pending} label="Pending" />
+            <MetricCard value={metrics.overdue} label="Overdue" />
+            <MetricCard value={metrics.completed} label="Finished" />
           </div>
-        </div>
 
-        <div className="task-list-panel">
-          <div className="task-list-header">
-            <h2>Tasks & Subtasks</h2>
-            <button className="add-task-btn" onClick={() => setIsModalOpen(true)}>
-              Task
-            </button>
-          </div>
-          <div className="filter-section">
-            <div 
-              className="filter-toggle" 
-              onClick={() => setExpandedFilters(!expandedFilters)}
-            >
-              <span>Filters</span>
-              <span className={`filter-toggle-icon ${expandedFilters ? 'expanded' : ''}`}>▼</span>
+          <div className="project-status-section">
+            <div className="section-header">
+              <h2>Activity Graph</h2>
+              <div className="period-selector">
+                <select 
+                  value={timeRange} 
+                  onChange={(e) => setTimeRange(Number(e.target.value))}
+                  className="range-select"
+                >
+                  <option value={7}>Last 7 days</option>
+                  <option value={14}>Last 14 days</option>
+                  <option value={30}>Last 30 days</option>
+                  <option value={60}>Last 60 days</option>
+                  <option value={90}>Last 90 days</option>
+                </select>
+              </div>
             </div>
-            
-            <div className={`filter-content ${expandedFilters ? 'expanded' : ''}`}>
-              <div className="filter-row">
-                <div className="filter-group">
-                  <label className="filter-label">Status</label>
-                  <select 
-                    className="filter-input"
-                    value={filters.status}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
+            <div className="chart-container">
+              <Line data={prepareChartData(timeRange)} options={chartOptions} />
+            </div>
+          </div>
+
+          <div className="task-section">
+            <div className="section-header">
+              <h2>All Tasks</h2>
+              <button 
+                className="add-task-btn"
+                onClick={() => setIsModalOpen(true)}
+              >
+                Add Task
+              </button>
+            </div>
+            <div className="section-header">
+              <div className="filter-group">
+                <select
+                  className="filter-select"
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                >
+                  <option value="">Status: All</option>
+                  <option value="not-started">Not Started</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={filters.priority}
+                  onChange={(e) => handleFilterChange('priority', e.target.value)}
+                >
+                  <option value="">Priority: All</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={filters.location}
+                  onChange={(e) => handleFilterChange('location', e.target.value)}
+                >
+                  <option value="">Location: All</option>
+                  {uniqueLocations.map(location => (
+                    <option key={location} value={location}>{location}</option>
+                  ))}
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={filters.assignedTo}
+                  onChange={(e) => handleFilterChange('assignedTo', e.target.value)}
+                >
+                  <option value="">Assigned To: All</option>
+                  {uniqueAssignees.map(assignee => (
+                    <option key={assignee} value={assignee}>{assignee}</option>
+                  ))}
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={sortOrder}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                >
+                  <option value="desc">Newest First ↓</option>
+                  <option value="asc">Oldest First ↑</option>
+                </select>
+
+                {Object.values(filters).some(Boolean) && (
+                  <button
+                    className="filter-clear-btn"
+                    onClick={() => {
+                      setFilters({
+                        status: '',
+                        priority: '',
+                        location: '',
+                        assignedTo: '',
+                        startDate: ''
+                      });
+                      setFilteredTasks(tasks);
+                    }}
                   >
-                    <option value="">All</option>
-                    <option value="completed">Completed</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="not-started">Not Started</option>
-                  </select>
-                </div>
-
-                <div className="filter-group">
-                  <label className="filter-label">Priority</label>
-                  <select
-                    onChange={(e) => handleFilterChange('priority', e.target.value)}
-                    className="filter-input"
-                  >
-                    <option value="">All Priorities</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="filter-row">
-                <div className="filter-group">
-                  <label className="filter-label">Location</label>
-                  <input
-                    type="text"
-                    placeholder="Enter location"
-                    onChange={(e) => handleFilterChange('location', e.target.value)}
-                    className="filter-input"
-                  />
-                </div>
-
-                <div className="filter-group">
-                  <label className="filter-label">Assignee</label>
-                  <input
-                    type="text"
-                    placeholder="Enter email"
-                    onChange={(e) => handleFilterChange('assignedTo', e.target.value)}
-                    className="filter-input"
-                  />
-                </div>
-              </div>
-
-              <div className="filter-row">
-                <div className="filter-group">
-                  <label className="filter-label">Start Date</label>
-                  <input
-                    type="date"
-                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                    className="filter-input date-input"
-                  />
-                </div>
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-          
-          {isLoading ? (
-            <div className="loading-spinner">Loading tasks...</div>
-          ) : filteredTasks.length === 0 ? (
-            <div className="no-tasks-message">
-              <p>No tasks found matching your criteria.</p>
-            </div>
-          ) : (
+
             <div className="task-list">
               {filteredTasks.map(task => (
-                <div key={task._id} className="task-card">
-                  <div 
-                    className="task-header" 
-                    onClick={() => toggleTaskExpansion(task._id)}
-                  >
-                    <div className="task-title-section">
-                      <span className={`expand-icon ${expandedTasks[task._id] ? 'expanded' : ''}`}>
-                        ▶
-                      </span>
-                      <span className="task-name">{task.TaskName}</span>
-                    </div>
-                    <div className="task-badges">
-                      <span className={getStatusBadgeClass(task.Status)}>
-                        {task.Status.replace('-', ' ')}
-                      </span>
-                      <span className={getPriorityBadgeClass(task.Priority)}>
-                        {task.Priority}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className={`task-details ${expandedTasks[task._id] ? 'expanded' : ''}`}>
-                    <div className="task-detail-row">
-                      <span className="detail-label">Location:</span>
-                      <span className="detail-value">{task.Location}</span>
-                    </div>
-                    <div className="task-detail-row">
-                      <span className="detail-label">Assigned To:</span>
-                      <span className="detail-value">{task.AssignedTo}</span>
-                    </div>
-                    <div className="task-detail-row">
-                      <span className="detail-label">Dates:</span>
-                      <span className="detail-value">
-                        {formatDate(task.StartDate)} - {formatDate(task.EndDate)}
-                      </span>
-                    </div>
-                    <div className="task-detail-row">
-                      <span className="detail-label">Progress:</span>
-                      <div className="progress-container">
-                        <div 
-                          className="progress-bar" 
-                          style={{ width: `${task.percentage}%` }}
-                        ></div>
-                        <span className="progress-text">{task.percentage}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {task.subtask && task.subtask.length > 0 && (
-                    <div className={`subtask-list ${expandedTasks[task._id] ? 'expanded' : ''}`}>
-                      <div className="subtask-header">Subtasks ({task.subtask.length})</div>
-                      {task.subtask.map((subtask, index) => (
-                        <div key={`${task._id}-sub-${index}`} className="subtask-item">
-                          <div className="subtask-content">
-                            <div className="subtask-title-section">
-                              <span className="subtask-bullet">•</span>
-                              <span className="subtask-name">{subtask.TaskName}</span>
-                            </div>
-                            <div className="subtask-badges">
-                              <span className={getStatusBadgeClass(subtask.Status)}>
-                                {subtask.Status.replace('-', ' ')}
-                              </span>   
-                              <span className={getPriorityBadgeClass(subtask.Priority)}>
-                                {subtask.Priority}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="subtask-detail">
-                            <span className="detail-label">Assigned To:</span>
-                            <span className="detail-value">{subtask.AssignedTo}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <TaskCard key={task._id} task={task} onTaskClick={setSelectedTask} />
               ))}
             </div>
-          )}
+          </div>
         </div>
-        
-        <div className="activity-log-panel">
-          <h2 className="panel-title">Activity Logs</h2>
-          <div className="activity-log">
-            {activityLog.length === 0 ? (
-              <div className="no-activity">No recent activity</div>
-            ) : (
-              activityLog.map(log => (
-                <div key={log._id || `log-${log.timestamp}-${log.type}`}>
-                  {renderLogDetails(log)}
-                </div>
-              ))
-            )}
+
+        <div className="main-right">
+          <div className="activity-log-panel">
+            <h2>Task Logs</h2>
+            <div className="activity-log">
+              {activityLog.length === 0 ? (
+                <div className="no-logs">No recent activity</div>
+              ) : (
+                activityLog.map((log, index) => (
+                  <LogEntry key={log._id || index} log={log} />
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {selectedTask && (
+        <div className="task-modal-overlay" onClick={() => setSelectedTask(null)}>
+          <div className="task-modal" onClick={e => e.stopPropagation()}>
+            <div className="task-modal-header">
+              <h2 className="task-modal-title">{selectedTask.TaskName}</h2>
+              <button className="task-modal-close" onClick={() => setSelectedTask(null)}>×</button>
+            </div>
+            <div className="task-modal-content">
+              <div className="task-modal-section">
+                <h3 className="task-modal-section-title">Task Details</h3>
+                <div className="task-detail-row">
+                  <span className="detail-label">Task ID:</span>
+                  <span className="detail-value">{selectedTask.TaskID}</span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">Assigned To:</span>
+                  <span className="detail-value">{selectedTask.AssignedTo}</span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">Description:</span>
+                  <span className="detail-value">{selectedTask.Description}</span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">Location:</span>
+                  <span className="detail-value">{selectedTask.Location}</span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">Priority:</span>
+                  <span className={`priority-badge ${selectedTask.Priority}`}>
+                    {selectedTask.Priority}
+                  </span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">Status:</span>
+                  <span className={`status-badge ${selectedTask.Status}`}>
+                    {selectedTask.Status.replace('-', ' ')}
+                  </span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">Progress:</span>
+                  <div className="progress-container">
+                    <div 
+                      className="progress-bar" 
+                      style={{ width: `${selectedTask.percentage}%` }}
+                    ></div>
+                    <span className="progress-text">{selectedTask.percentage}%</span>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedTask.subtask && selectedTask.subtask.length > 0 && (
+                <div className="task-modal-section">
+                  <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
+                  <div className="subtasks-list">
+                    {selectedTask.subtask.map((subtask, index) => (
+                      <div key={index} className="subtask-item">
+                        <div className="subtask-content">
+                          <span className="subtask-name">{subtask.TaskName}</span>
+                          <div className="subtask-badges">
+                            <span className={`status-badge ${subtask.Status}`}>
+                              {subtask.Status.replace('-', ' ')}
+                            </span>
+                            <span className={`priority-badge ${subtask.Priority}`}>
+                              {subtask.Priority}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="subtask-detail">
+                          <span className="detail-label">Assigned To:</span>
+                          <span className="detail-value">{subtask.AssignedTo}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
-      <TaskModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onTaskCreated={handleTaskCreated}
-      />
+      {isModalOpen && (
+        <TaskModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onTaskCreated={(newTask) => {
+            handleTaskCreated(newTask);
+            setIsModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };
