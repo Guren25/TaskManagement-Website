@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/UserController');
+const auth = require('../middleware/auth');
 
 router.post('/login', userController.login);
 router.post('/register', userController.createUser);
+router.get('/verify-token', auth, userController.verifyToken);
 
 router.get('/', userController.getAllUsers);
 router.get('/:id', userController.getUserById);

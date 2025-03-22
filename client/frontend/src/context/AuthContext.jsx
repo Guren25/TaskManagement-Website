@@ -1,8 +1,7 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
-// Configure axios with base URL - adjust this to match your server URL
-axios.defaults.baseURL = 'http://localhost:5000'; // Change to your server port
+axios.defaults.baseURL = 'http://localhost:5000';
 
 const AuthContext = createContext();
 
@@ -24,15 +23,38 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const verifyUser = async () => {
-      if (token) {
-        try {
-          setUser(JSON.parse(localStorage.getItem('user')));
-        } catch (err) {
-          console.error("Auth verification error:", err);
-          logout();
+      try {
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
+        
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+          
+          try {
+            // Verify with backend
+            const response = await axios.get('/api/users/verify-token', {
+              headers: {
+                Authorization: `Bearer ${storedToken}`
+              }
+            });
+            
+            if (response.data.valid) {
+              setUser(response.data.user);
+            }
+          } catch (err) {
+            // Don't logout on network error, only on invalid token
+            if (err.response && err.response.status === 401) {
+              logout();
+            }
+            console.error("Auth verification error:", err);
+          }
         }
+      } catch (err) {
+        console.error("Auth error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     verifyUser();
@@ -48,7 +70,11 @@ export const AuthProvider = ({ children }) => {
       return res.data;
     } catch (err) {
       console.error("Login error details:", err);
-      setError(err.response?.data?.message || "Login failed");
+      if (err.code === 'ERR_NETWORK') {
+        setError('Unable to connect to server. Please check your connection or try again later.');
+      } else {
+        setError(err.response?.data?.message || "Login failed");
+      }
       throw err;
     }
   };
@@ -56,7 +82,6 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setError(null);
-      // Update this endpoint to match your server route
       const res = await axios.post('/users/register', userData);
       return res.data;
     } catch (err) {

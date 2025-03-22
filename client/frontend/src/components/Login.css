@@ -136,10 +136,10 @@
   100% { background-position: 0% 50%; }
 }
 
-.login-form-wrapper input:-webkit-autofill,
-.login-form-wrapper input:-webkit-autofill:hover,
-.login-form-wrapper input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 30px white inset !important;
-  -webkit-text-fill-color: #1d1d1f !important;
+.auth-form-input:-webkit-autofill,
+.auth-form-input:-webkit-autofill:hover,
+.auth-form-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1d1d1f;
+  -webkit-box-shadow: 0 0 0px 1000px white inset;
   transition: background-color 5000s ease-in-out 0s;
 }

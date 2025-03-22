@@ -351,10 +351,10 @@ const AdminDashboard = () => {
     };
 
     return (
-      <div className="log-entry" key={log.logID}>
+      <div className="log-entry">
         <div 
           className="log-header"
-          onClick={() => toggleLogExpansion(log.logID)}
+          onClick={() => toggleLogExpansion(log._id)}
         >
           <div className="log-title">
             <span className={`change-type ${log.changeType ? log.changeType.toLowerCase() : ''}`}>
@@ -365,11 +365,11 @@ const AdminDashboard = () => {
           <div className="log-meta">
             <span className="log-user">{log.changedBy}</span>
             <span className="log-timestamp">{formatTimestamp(log.timestamp)}</span>
-            <span className={`expand-icon ${expandedLogs[log.logID] ? 'expanded' : ''}`}>▼</span>
+            <span className={`expand-icon ${expandedLogs[log._id] ? 'expanded' : ''}`}>▼</span>
           </div>
         </div>
         
-        {expandedLogs[log.logID] && (
+        {expandedLogs[log._id] && (
           <div className="log-content">
             <div className="log-grid">
               {log.oldValue && log.newValue && (
@@ -377,7 +377,7 @@ const AdminDashboard = () => {
                   const oldValue = getFormattedValue(log.oldValue)[key];
                   if (oldValue !== newValue) {
                     return (
-                      <div key={key} className="change-item">
+                      <div key={`${log._id}-${key}`} className="change-item">
                         <span className="change-key">{key}</span>
                         <div className="change-values">
                           <span className="old-value">{oldValue}</span>
@@ -392,7 +392,7 @@ const AdminDashboard = () => {
               )}
               {!log.oldValue && log.newValue && (
                 Object.entries(getFormattedValue(log.newValue)).map(([key, value]) => (
-                  <div key={key} className="change-item">
+                  <div key={`${log._id}-${key}`} className="change-item">
                     <span className="change-key">{key}</span>
                     <span className="change-value">{value}</span>
                   </div>
@@ -623,7 +623,11 @@ const AdminDashboard = () => {
             {activityLog.length === 0 ? (
               <div className="no-activity">No recent activity</div>
             ) : (
-              activityLog.map(log => renderLogDetails(log))
+              activityLog.map(log => (
+                <div key={log._id || `log-${log.timestamp}-${log.type}`}>
+                  {renderLogDetails(log)}
+                </div>
+              ))
             )}
           </div>
         </div>

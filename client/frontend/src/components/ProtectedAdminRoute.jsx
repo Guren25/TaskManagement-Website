@@ -8,7 +8,7 @@ const ProtectedAdminRoute = ({ children }) => {
     return <div className="loading-indicator">Loading...</div>;
   }
   if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/login" replace />;
   }
   
   return children;

@@ -11,7 +11,7 @@ const Login = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { login, error } = useAuth();
+  const { login, error, user } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -39,8 +39,12 @@ const Login = () => {
       setIsSubmitting(true);
       try {
         console.log("Attempting login with:", { email: formData.email });
-        await login(formData.email, formData.password);
-        navigate('/dashboard');
+        const response = await login(formData.email, formData.password);
+        if (response.user.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } catch (err) {
         console.error("Login error details:", err);
       } finally {
