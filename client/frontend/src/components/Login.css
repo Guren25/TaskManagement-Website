@@ -1,4 +1,4 @@
-.login-container {
+.auth-login-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -8,7 +8,7 @@
   transition: background-color 0.5s ease;
 }
 
-.login-form-wrapper {
+.auth-login-form {
   background-color: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -18,9 +18,10 @@
   width: 100%;
   max-width: 500px;
   transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  animation: auth-form-appear 0.5s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-.login-form-wrapper h2 {
+.auth-login-title {
   margin-bottom: 2rem;
   color: #000000;
   text-align: center;
@@ -29,12 +30,12 @@
   letter-spacing: -0.02em;
 }
 
-.login-form-wrapper .form-group {
+.auth-form-group {
   margin-bottom: 1.5rem;
   text-align: left;
 }
 
-.login-form-wrapper label {
+.auth-form-label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
@@ -44,7 +45,7 @@
   text-align: left;
 }
 
-.login-form-wrapper input {
+.auth-form-input {
   width: 100%;
   padding: 0.85rem 1rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -57,22 +58,18 @@
   min-width: 300px;
 }
 
-.login-form-wrapper input::placeholder {
-  color: #86868b;
-}
-
-.login-form-wrapper input.error {
+.auth-form-input.error {
   box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.6);
 }
 
-.login-form-wrapper .error-text {
+.auth-error-text {
   display: block;
   margin-top: 0.5rem;
   color: #ff3b30;
   font-size: 0.85rem;
 }
 
-.login-form-wrapper .error-message {
+.auth-error-message {
   padding: 1rem;
   margin-bottom: 1.5rem;
   background-color: rgba(255, 59, 48, 0.1);
@@ -82,7 +79,7 @@
   text-align: center;
 }
 
-.login-form-wrapper .submit-btn {
+.auth-submit-btn {
   width: 100%;
   padding: 0.85rem;
   background: #000000;
@@ -96,50 +93,14 @@
   box-shadow: 0 2px 12px rgba(0, 113, 227, 0.2);
 }
 
-.login-form-wrapper .submit-btn:hover {
-  background: #1d1d1f;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 113, 227, 0.3);
-}
-
-.login-form-wrapper .submit-btn:active {
-  transform: scale(0.98);
-}
-
-.login-form-wrapper .submit-btn:disabled {
-  background: linear-gradient(270deg, #86868b, #a1a1a6);
-  background-size: 200% 200%;
-  animation: buttonLoading 2s ease infinite;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.login-form-wrapper .auth-links {
+.auth-links {
   margin-top: 2rem;
   text-align: center;
   font-size: 0.95rem;
   color: #86868b;
 }
 
-.login-form-wrapper .auth-links a {
-  color: #000000;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.login-form-wrapper .auth-links a:hover {
-  color: #000000;
-  text-decoration: none;
-}
-
-@media (max-width: 480px) {
-  .login-form-wrapper {
-    padding: 2rem;
-  }
-}
-
-@keyframes formAppear {
+@keyframes auth-form-appear {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -147,6 +108,12 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-login-form {
+    padding: 2rem;
   }
 }
 

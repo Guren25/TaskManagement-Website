@@ -9,7 +9,7 @@
   color: #1d1d1f;
 }
 
-.dashboard-header {
+.admin-dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -19,7 +19,7 @@
   flex-wrap: nowrap;
 }
 
-.dashboard-title {
+.admin-dashboard-title {
   font-size: 1.75rem;
   font-weight: 600;
   margin: 0;
@@ -27,7 +27,7 @@
   color: #1d1d1f;
 }
 
-.dashboard-subtitle {
+.admin-dashboard-subtitle {
   margin: 0.25rem 0 0;
   color: #6e6e73;
   font-size: 0.9rem;
@@ -578,7 +578,7 @@ select.filter-input {
     padding: 1rem;
   }
   
-  .dashboard-header {
+  .admin-dashboard-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;

@@ -407,9 +407,9 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      <div className="dashboard-header">
+      <div className="admin-dashboard-header">
         <div>
-          <h1 className="dashboard-title">ADMIN DASHBOARD</h1>
+          <h1 className="admin-dashboard-title">ADMIN DASHBOARD</h1>
         </div>
       </div>
       

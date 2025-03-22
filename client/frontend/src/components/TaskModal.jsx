@@ -95,56 +95,56 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <div className="modal-header">
-          <h2 className="modal-title">Create New Task</h2>
-          <button onClick={onClose} className="modal-close">×</button>
+    <div className="admin-task-modal-overlay">
+      <div className="admin-task-modal">
+        <div className="admin-task-modal-header">
+          <h2 className="admin-task-modal-title">Create New Task</h2>
+          <button onClick={onClose} className="admin-task-modal-close">×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Task Name</label>
+        <form onSubmit={handleSubmit} className="admin-task-modal-form">
+          <div className="admin-task-form-row">
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">Task Name</label>
               <input
                 type="text"
-                className={`form-input ${errors.TaskName ? 'error' : ''}`}
+                className={`admin-task-form-input ${errors.TaskName ? 'error' : ''}`}
                 value={taskData.TaskName}
                 onChange={(e) => setTaskData({ ...taskData, TaskName: e.target.value })}
                 placeholder="Enter task name"
               />
-              {errors.TaskName && <span className="error-message">{errors.TaskName}</span>}
+              {errors.TaskName && <span className="admin-task-error-message">{errors.TaskName}</span>}
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Location</label>
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">Location</label>
               <input
                 type="text"
-                className={`form-input ${errors.Location ? 'error' : ''}`}
+                className={`admin-task-form-input ${errors.Location ? 'error' : ''}`}
                 value={taskData.Location}
                 onChange={(e) => setTaskData({ ...taskData, Location: e.target.value })}
                 placeholder="Enter location"
               />
-              {errors.Location && <span className="error-message">{errors.Location}</span>}
+              {errors.Location && <span className="admin-task-error-message">{errors.Location}</span>}
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Description</label>
+          <div className="admin-task-form-group">
+            <label className="admin-task-form-label">Description</label>
             <textarea
-              className={`form-textarea ${errors.Description ? 'error' : ''}`}
+              className={`admin-task-form-textarea ${errors.Description ? 'error' : ''}`}
               value={taskData.Description}
               onChange={(e) => setTaskData({ ...taskData, Description: e.target.value })}
               placeholder="Describe the task"
             />
-            {errors.Description && <span className="error-message">{errors.Description}</span>}
+            {errors.Description && <span className="admin-task-error-message">{errors.Description}</span>}
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Priority</label>
+          <div className="admin-task-form-row">
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">Priority</label>
               <select
-                className="form-select"
+                className={`admin-task-form-select ${errors.Priority ? 'error' : ''}`}
                 value={taskData.Priority}
                 onChange={(e) => setTaskData({ ...taskData, Priority: e.target.value })}
               >
@@ -154,10 +154,10 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               </select>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Assigned To</label>
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">Assigned To</label>
               <select
-                className={`form-select ${errors.AssignedTo ? 'error' : ''}`}
+                className={`admin-task-form-select ${errors.AssignedTo ? 'error' : ''}`}
                 value={taskData.AssignedTo}
                 onChange={(e) => setTaskData({ ...taskData, AssignedTo: e.target.value })}
               >
@@ -168,54 +168,54 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                   </option>
                 ))}
               </select>
-              {errors.AssignedTo && <span className="error-message">{errors.AssignedTo}</span>}
+              {errors.AssignedTo && <span className="admin-task-error-message">{errors.AssignedTo}</span>}
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Start Date</label>
+          <div className="admin-task-form-row">
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">Start Date</label>
               <input
                 type="date"
-                className={`form-input ${errors.StartDate ? 'error' : ''}`}
+                className={`admin-task-form-input ${errors.StartDate ? 'error' : ''}`}
                 value={taskData.StartDate}
                 onChange={(e) => setTaskData({ ...taskData, StartDate: e.target.value })}
                 placeholder="dd/mm/yyyy"
               />
-              {errors.StartDate && <span className="error-message">{errors.StartDate}</span>}
+              {errors.StartDate && <span className="admin-task-error-message">{errors.StartDate}</span>}
             </div>
 
-            <div className="form-group">
-              <label className="form-label">End Date</label>
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">End Date</label>
               <input
                 type="date"
-                className={`form-input ${errors.EndDate ? 'error' : ''}`}
+                className={`admin-task-form-input ${errors.EndDate ? 'error' : ''}`}
                 value={taskData.EndDate}
                 onChange={(e) => setTaskData({ ...taskData, EndDate: e.target.value })}
                 placeholder="dd/mm/yyyy"
               />
-              {errors.EndDate && <span className="error-message">{errors.EndDate}</span>}
+              {errors.EndDate && <span className="admin-task-error-message">{errors.EndDate}</span>}
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Assigned By</label>
+          <div className="admin-task-form-group">
+            <label className="admin-task-form-label">Assigned By</label>
             <input
               type="text"
-              className={`form-input ${errors.AssignedBy ? 'error' : ''}`}
+              className={`admin-task-form-input ${errors.AssignedBy ? 'error' : ''}`}
               value={taskData.AssignedBy}
               onChange={(e) => setTaskData({ ...taskData, AssignedBy: e.target.value })}
               placeholder="Enter assigner's email"
               readOnly
             />
-            {errors.AssignedBy && <span className="error-message">{errors.AssignedBy}</span>}
+            {errors.AssignedBy && <span className="admin-task-error-message">{errors.AssignedBy}</span>}
           </div>
 
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-cancel">
+          <div className="admin-task-modal-footer">
+            <button type="button" onClick={onClose} className="admin-task-btn admin-task-btn-cancel">
               Cancel
             </button>
-            <button type="submit" className="btn btn-submit" disabled={isSubmitting}>
+            <button type="submit" className="admin-task-btn admin-task-btn-submit" disabled={isSubmitting}>
               {isSubmitting ? 'Creating...' : 'Create Task'}
             </button>
           </div>

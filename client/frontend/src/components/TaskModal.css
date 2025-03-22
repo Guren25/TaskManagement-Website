@@ -1,4 +1,4 @@
-.modal-overlay {
+.admin-task-modal-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
@@ -10,7 +10,7 @@
   -webkit-backdrop-filter: blur(5px);
 }
 
-.modal-container {
+.admin-task-modal {
   background-color: #f5f5f7;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -19,7 +19,7 @@
   max-width: 650px;
 }
 
-.modal-header {
+.admin-task-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -28,14 +28,14 @@
   margin-bottom: 1.25rem;
 }
 
-.modal-title {
+.admin-task-modal-title {
   color: #000000;
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0;
 }
 
-.modal-close {
+.admin-task-modal-close {
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -49,21 +49,21 @@
   height: 24px;
 }
 
-.modal-close:hover {
+.admin-task-modal-close:hover {
   color: #000000;
 }
 
-.modal-form {
+.admin-task-modal-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.form-group {
+.admin-task-form-group {
   margin-bottom: 0.25rem;
 }
 
-.form-label {
+.admin-task-form-label {
   display: block;
   text-align: center;
   margin-bottom: 0.35rem;
@@ -72,9 +72,9 @@
   font-size: 0.85rem;
 }
 
-.form-input,
-.form-textarea,
-.form-select {
+.admin-task-form-input,
+.admin-task-form-textarea,
+.admin-task-form-select {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -86,17 +86,17 @@
   outline: none;
 }
 
-.form-input::placeholder,
-.form-textarea::placeholder {
+.admin-task-form-input::placeholder,
+.admin-task-form-textarea::placeholder {
   color: #909090;
 }
 
-.form-textarea {
+.admin-task-form-textarea {
   min-height: 100px;
   resize: none;
 }
 
-.form-select {
+.admin-task-form-select {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -115,17 +115,17 @@
   text-overflow: ellipsis;
 }
 
-.form-select {
+.admin-task-form-select {
   min-height: 38px;
 }
 
-.form-row {
+.admin-task-form-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 
-.modal-footer {
+.admin-task-modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -134,7 +134,7 @@
   border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.btn {
+.admin-task-btn {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   font-size: 0.875rem;
@@ -143,27 +143,27 @@
   transition: background-color 0.2s ease;
 }
 
-.btn-cancel {
+.admin-task-btn-cancel {
   background-color: #e6e6e6;
   border: none;
   color: #333333;
 }
 
-.btn-cancel:hover {
+.admin-task-btn-cancel:hover {
   background-color: #d9d9d9;
 }
 
-.btn-submit {
+.admin-task-btn-submit {
   background-color: #000000;
   border: none;
   color: white;
 }
 
-.btn-submit:hover {
+.admin-task-btn-submit:hover {
   background-color: #333333;
 }
 
-.error-message {
+.admin-task-error-message {
   display: block;
   margin-top: 0.25rem;
   color: #ff3b30;
@@ -171,9 +171,9 @@
   text-align: left;
 }
 
-.form-input.error,
-.form-textarea.error,
-.form-select.error {
+.admin-task-form-input.error,
+.admin-task-form-textarea.error,
+.admin-task-form-select.error {
   border-color: #ff3b30;
 }
 
@@ -197,18 +197,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @media (max-width: 768px) {
-  .form-row {
+  .admin-task-form-row {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
   
-  .modal-container {
+  .admin-task-modal {
     width: 95%;
     padding: 1rem;
   }
 }
 
-.form-input[readonly] {
+.admin-task-form-input[readonly] {
   background-color: #f5f5f7;
   color: #666;
   cursor: not-allowed;

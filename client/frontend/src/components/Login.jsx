@@ -50,15 +50,15 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-form-wrapper">
-        <h2>Login</h2>
+    <div className="auth-login-container">
+      <div className="auth-login-form">
+        <h2 className="auth-login-title">Login</h2>
         
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="auth-error-message">{error}</div>}
         
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
+          <div className="auth-form-group">
+            <label className="auth-form-label" htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
@@ -66,13 +66,13 @@ const Login = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter your email"
-              className={formErrors.email ? 'error' : ''}
+              className={`auth-form-input ${formErrors.email ? 'error' : ''}`}
             />
-            {formErrors.email && <span className="error-text">{formErrors.email}</span>}
+            {formErrors.email && <span className="auth-error-text">{formErrors.email}</span>}
           </div>
           
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
+          <div className="auth-form-group">
+            <label className="auth-form-label" htmlFor="password">Password</label>
             <input
               type="password"
               id="password"
@@ -80,12 +80,12 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Enter your password"
-              className={formErrors.password ? 'error' : ''}
+              className={`auth-form-input ${formErrors.password ? 'error' : ''}`}
             />
-            {formErrors.password && <span className="error-text">{formErrors.password}</span>}
+            {formErrors.password && <span className="auth-error-text">{formErrors.password}</span>}
           </div>
           
-          <button type="submit" className="submit-btn" disabled={isSubmitting}>
+          <button type="submit" className="auth-submit-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Logging in...' : 'Login'}
           </button>
         </form>
