@@ -32,6 +32,7 @@ const formatDate = (dateString) => {
 };
 
 const TaskCard = ({ task, onTaskClick }) => {
+  console.log('Rendering task:', task);
   return (
     <div className="task-card" onClick={() => onTaskClick(task)}>
       <div className="task-header">
@@ -62,10 +63,21 @@ const TaskCard = ({ task, onTaskClick }) => {
 };
 
 const calculateMetrics = (tasks) => {
+  console.log('Calculating metrics for tasks:', tasks);
+  console.log('Task statuses:', tasks.map(task => ({
+    name: task.TaskName,
+    status: task.Status,
+    endDate: task.EndDate
+  })));
+
   return {
     totalProjects: tasks.length,
     pending: tasks.filter(task => task.Status === 'not-started').length,
-    overdue: tasks.filter(task => new Date(task.EndDate) < new Date() && task.Status !== 'completed').length,
+    overdue: tasks.filter(task => {
+      const endDate = new Date(task.EndDate);
+      const today = new Date();
+      return endDate < today && task.Status !== 'completed';
+    }).length,
     completed: tasks.filter(task => task.Status === 'completed').length
   };
 };
@@ -146,13 +158,7 @@ const AdminDashboard = () => {
     totalProjects: 0,
     pending: 0,
     overdue: 0,
-    completed: 0,
-    trends: {
-      projects: { value: 0, isPositive: true },
-      pending: { value: 0, isPositive: true },
-      overdue: { value: 0, isPositive: true },
-      completed: { value: 0, isPositive: true }
-    }
+    completed: 0
   });
   const [timeRange, setTimeRange] = useState(7);
   const [uniqueLocations, setUniqueLocations] = useState([]);
@@ -180,13 +186,30 @@ const AdminDashboard = () => {
     }
   }, [tasks]);
 
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const sorted = [...tasks].sort((a, b) => {
+        const dateA = new Date(a.StartDate);
+        const dateB = new Date(b.StartDate);
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      });
+      setFilteredTasks(sorted);
+    }
+  }, [tasks, sortOrder]);
+
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
       const response = await axios.get('/api/tasks');
-      const data = response.data;
-      setTasks(data);
-      setFilteredTasks(data);
+      console.log('Fetched tasks:', response.data);
+      
+      // Set both tasks and filteredTasks
+      setTasks(response.data);
+      setFilteredTasks(response.data);
+      
+      // Calculate metrics
+      const calculatedMetrics = calculateMetrics(response.data);
+      setMetrics(calculatedMetrics);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
@@ -207,7 +230,8 @@ const AdminDashboard = () => {
     const newFilters = { ...filters, [filterType]: value };
     setFilters(newFilters);
 
-    let filtered = [...tasks];
+    // Filter the tasks based on all active filters
+    let filtered = [...tasks]; // Start with all tasks
 
     if (newFilters.status) {
       filtered = filtered.filter(task => task.Status === newFilters.status);
@@ -419,8 +443,12 @@ const AdminDashboard = () => {
   };
 
   const handleTaskCreated = (newTask) => {
-    setTasks([...tasks, newTask]);
-    setFilteredTasks([...filteredTasks, newTask]);
+    setTasks(prevTasks => {
+      const updatedTasks = [...prevTasks, newTask];
+      setFilteredTasks(updatedTasks); // Update filtered tasks as well
+      setMetrics(calculateMetrics(updatedTasks)); // Recalculate metrics
+      return updatedTasks;
+    });
     
     const newLog = {
       _id: `task-created-${newTask._id}`,
@@ -557,12 +585,12 @@ const AdminDashboard = () => {
     );
   };
 
-  const handleSortChange = (order) => {
-    setSortOrder(order);
+  const handleSortChange = (value) => {
+    setSortOrder(value);
     const sorted = [...filteredTasks].sort((a, b) => {
       const dateA = new Date(a.StartDate);
       const dateB = new Date(b.StartDate);
-      return order === 'asc' ? dateA - dateB : dateB - dateA;
+      return value === 'desc' ? dateB - dateA : dateA - dateB;
     });
     setFilteredTasks(sorted);
   };
@@ -580,10 +608,10 @@ const AdminDashboard = () => {
       <div className="dashboard-main">
         <div className="main-left">
           <div className="dashboard-metrics">
-            <MetricCard value={metrics.totalProjects} label="Projects" />
+            <MetricCard value={metrics.totalProjects} label="Total Projects" />
             <MetricCard value={metrics.pending} label="Pending" />
             <MetricCard value={metrics.overdue} label="Overdue" />
-            <MetricCard value={metrics.completed} label="Finished" />
+            <MetricCard value={metrics.completed} label="Completed" />
           </div>
 
           <div className="project-status-section">
@@ -669,8 +697,8 @@ const AdminDashboard = () => {
                   value={sortOrder}
                   onChange={(e) => handleSortChange(e.target.value)}
                 >
-                  <option value="desc">Newest First ↓</option>
-                  <option value="asc">Oldest First ↑</option>
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
                 </select>
 
                 {Object.values(filters).some(Boolean) && (
@@ -694,9 +722,19 @@ const AdminDashboard = () => {
             </div>
 
             <div className="task-list">
-              {filteredTasks.map(task => (
-                <TaskCard key={task._id} task={task} onTaskClick={setSelectedTask} />
-              ))}
+              {isLoading ? (
+                <div>Loading tasks...</div>
+              ) : filteredTasks.length === 0 ? (
+                <div>No tasks found</div>
+              ) : (
+                filteredTasks.map(task => (
+                  <TaskCard 
+                    key={task._id} 
+                    task={task} 
+                    onTaskClick={setSelectedTask} 
+                  />
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: ["manager", "client", "engineer", "admin"],
+        default: "client",
     },
 });
 

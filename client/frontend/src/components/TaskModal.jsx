@@ -162,13 +162,18 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                 onChange={(e) => setTaskData({ ...taskData, AssignedTo: e.target.value })}
               >
                 <option value="">Select an engineer</option>
-                {engineers.map(engineer => (
-                  <option key={engineer._id} value={engineer.email}>
-                    {engineer.firstname} {engineer.lastname} ({engineer.email})
-                  </option>
-                ))}
+                {engineers.length > 0 ? (
+                  engineers.map(engineer => (
+                    <option key={engineer._id} value={engineer.email}>
+                      {engineer.firstname} {engineer.lastname} ({engineer.email})
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No engineers available</option>
+                )}
               </select>
               {errors.AssignedTo && <span className="admin-task-error-message">{errors.AssignedTo}</span>}
+              {engineers.length === 0 && <span className="admin-task-error-message">No engineers found</span>}
             </div>
           </div>
 
