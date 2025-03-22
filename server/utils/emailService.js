@@ -82,14 +82,19 @@ const sendSubtaskAssignmentEmail = async (recipientEmail, mainTask, subtask) => 
 
 const sendDueDateEmail = async (recipientEmail, taskDetails) => {
     try {
+        const isOverdue = taskDetails.daysRemaining < 0;
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: recipientEmail,
-            subject: `Task Due Date Reminder: ${taskDetails.TaskName}`,
+            subject: `Task ${isOverdue ? 'Overdue' : 'Due Date'} Reminder: ${taskDetails.TaskName}`,
             html: `
-                <h2>Task Due Date Reminder</h2>
-                <p style="color: ${taskDetails.daysRemaining <= 3 ? '#ff3b30' : '#ff9500'}">
-                    <strong>This task is due in ${taskDetails.daysRemaining} day${taskDetails.daysRemaining > 1 ? 's' : ''}!</strong>
+                <h2>Task ${isOverdue ? 'Overdue' : 'Due Date'} Reminder</h2>
+                <p style="color: ${isOverdue ? '#ff0000' : taskDetails.daysRemaining <= 3 ? '#ff3b30' : '#ff9500'}">
+                    <strong>${
+                        isOverdue 
+                            ? `This task is overdue by ${Math.abs(taskDetails.daysRemaining)} day${Math.abs(taskDetails.daysRemaining) > 1 ? 's' : ''}!` 
+                            : `This task is due in ${taskDetails.daysRemaining} day${taskDetails.daysRemaining > 1 ? 's' : ''}!`
+                    }</strong>
                 </p>
                 <p><strong>Task Name:</strong> ${taskDetails.TaskName}</p>
                 <p><strong>Description:</strong> ${taskDetails.Description}</p>
@@ -97,7 +102,11 @@ const sendDueDateEmail = async (recipientEmail, taskDetails) => {
                 <p><strong>Priority:</strong> ${taskDetails.Priority}</p>
                 <p><strong>Due Date:</strong> ${new Date(taskDetails.EndDate).toLocaleDateString()}</p>
                 <br>
-                <p>Please ensure to complete the task before the due date.</p>
+                <p>${
+                    isOverdue 
+                        ? 'Please complete this task as soon as possible as it is past the due date.' 
+                        : 'Please ensure to complete the task before the due date.'
+                }</p>
             `
         };
 

@@ -15,6 +15,7 @@ import axios from 'axios';
 import TaskModal from './TaskModal';
 import './AdminDashboard.css';
 import { format } from 'date-fns';
+import SideNav from './SideNav';
 
 ChartJS.register(
   CategoryScale,
@@ -149,10 +150,27 @@ const LogEntry = ({ log }) => {
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
+  // Handle system notification logs
+  if (log.newValue?.type === 'due_date_notification') {
+    return (
+      <div className="log-entry">
+        <div className="log-title">
+          <span className="task-name">{log.newValue.message}</span>
+          <span className="log-badge notification">Reminder</span>
+        </div>
+        <div className="log-footer">
+          <span className="log-user">System</span>
+          <span className="log-time">{getTimeAgo(log.timestamp)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle regular task change logs
   return (
     <div className="log-entry">
       <div className="log-title">
-        <span className="task-name">{log.newValue?.TaskName}</span>
+        <span className="task-name">{log.newValue?.TaskName || log.taskName}</span>
         <span className={`log-badge ${log.changeType?.toLowerCase()}`}>
           {log.changeType?.toLowerCase()}
         </span>
@@ -226,8 +244,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (tasks.length > 0) {
       const sorted = [...tasks].sort((a, b) => {
-        const dateA = new Date(a.StartDate);
-        const dateB = new Date(b.StartDate);
+        const dateA = new Date(a.CreatedAt);
+        const dateB = new Date(b.CreatedAt);
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
       });
       setFilteredTasks(sorted);
@@ -625,272 +643,275 @@ const AdminDashboard = () => {
   const handleSortChange = (value) => {
     setSortOrder(value);
     const sorted = [...filteredTasks].sort((a, b) => {
-      const dateA = new Date(a.StartDate);
-      const dateB = new Date(b.StartDate);
+      const dateA = new Date(a.CreatedAt);
+      const dateB = new Date(b.CreatedAt);
       return value === 'desc' ? dateB - dateA : dateA - dateB;
     });
     setFilteredTasks(sorted);
   };
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-dashboard-header">
-        <div className="header-left">
-          <h1 className="welcome-text">
-            Welcome back, {currentUser?.firstname || currentUser?.email || 'User'}!
-          </h1>
-        </div>
-      </div>
-
-      <div className="dashboard-main">
-        <div className="main-left">
-          <div className="dashboard-metrics">
-            <MetricCard value={metrics.totalProjects} label="Total Projects" />
-            <MetricCard value={metrics.pending} label="Pending" />
-            <MetricCard value={metrics.overdue} label="Overdue" />
-            <MetricCard value={metrics.completed} label="Completed" />
+    <div className="admin-layout">
+      <SideNav />
+      <div className="admin-dashboard">
+        <div className="admin-dashboard-header">
+          <div className="header-left">
+            <h1 className="welcome-text">
+              Welcome back, {currentUser?.firstname || currentUser?.email || 'User'}!
+            </h1>
           </div>
+        </div>
 
-          <div className="project-status-section">
-            <div className="section-header">
-              <h2>Activity Graph</h2>
-              <div className="period-selector">
-                <select 
-                  value={timeRange} 
-                  onChange={(e) => setTimeRange(Number(e.target.value))}
-                  className="range-select"
-                >
-                  <option value={7}>Last 7 days</option>
-                  <option value={14}>Last 14 days</option>
-                  <option value={30}>Last 30 days</option>
-                  <option value={60}>Last 60 days</option>
-                  <option value={90}>Last 90 days</option>
-                </select>
+        <div className="dashboard-main">
+          <div className="main-left">
+            <div className="dashboard-metrics">
+              <MetricCard value={metrics.totalProjects} label="Total Projects" />
+              <MetricCard value={metrics.pending} label="Pending" />
+              <MetricCard value={metrics.overdue} label="Overdue" />
+              <MetricCard value={metrics.completed} label="Completed" />
+            </div>
+
+            <div className="project-status-section">
+              <div className="section-header">
+                <h2>Activity Graph</h2>
+                <div className="period-selector">
+                  <select 
+                    value={timeRange} 
+                    onChange={(e) => setTimeRange(Number(e.target.value))}
+                    className="range-select"
+                  >
+                    <option value={7}>Last 7 days</option>
+                    <option value={14}>Last 14 days</option>
+                    <option value={30}>Last 30 days</option>
+                    <option value={60}>Last 60 days</option>
+                    <option value={90}>Last 90 days</option>
+                  </select>
+                </div>
+              </div>
+              <div className="chart-container">
+                <Line data={prepareChartData(timeRange)} options={chartOptions} />
               </div>
             </div>
-            <div className="chart-container">
-              <Line data={prepareChartData(timeRange)} options={chartOptions} />
-            </div>
-          </div>
 
-          <div className="task-section">
-            <div className="section-header">
-              <h2>All Tasks</h2>
-              <button 
-                className="add-task-btn"
-                onClick={() => setIsModalOpen(true)}
-              >
-                Add Task
-              </button>
-            </div>
-            <div className="section-header">
-              <div className="filter-group">
-                <select
-                  className="filter-select"
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
+            <div className="task-section">
+              <div className="section-header">
+                <h2>All Tasks</h2>
+                <button 
+                  className="add-task-btn"
+                  onClick={() => setIsModalOpen(true)}
                 >
-                  <option value="">Status: All</option>
-                  <option value="not-started">Not Started</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
-
-                <select
-                  className="filter-select"
-                  value={filters.priority}
-                  onChange={(e) => handleFilterChange('priority', e.target.value)}
-                >
-                  <option value="">Priority: All</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-
-                <select
-                  className="filter-select"
-                  value={filters.location}
-                  onChange={(e) => handleFilterChange('location', e.target.value)}
-                >
-                  <option value="">Location: All</option>
-                  {uniqueLocations.map(location => (
-                    <option key={location} value={location}>{location}</option>
-                  ))}
-                </select>
-
-                <select
-                  className="filter-select"
-                  value={filters.assignedTo}
-                  onChange={(e) => handleFilterChange('assignedTo', e.target.value)}
-                >
-                  <option value="">Assigned To: All</option>
-                  {uniqueAssignees.map(assignee => (
-                    <option key={assignee} value={assignee}>{assignee}</option>
-                  ))}
-                </select>
-
-                <select
-                  className="filter-select"
-                  value={sortOrder}
-                  onChange={(e) => handleSortChange(e.target.value)}
-                >
-                  <option value="desc">Newest First</option>
-                  <option value="asc">Oldest First</option>
-                </select>
-
-                {Object.values(filters).some(Boolean) && (
-                  <button
-                    className="filter-clear-btn"
-                    onClick={() => {
-                      setFilters({
-                        status: '',
-                        priority: '',
-                        location: '',
-                        assignedTo: '',
-                        startDate: ''
-                      });
-                      setFilteredTasks(tasks);
-                    }}
+                  Add Task
+                </button>
+              </div>
+              <div className="section-header">
+                <div className="filter-group">
+                  <select
+                    className="filter-select"
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
                   >
-                    Clear
-                  </button>
+                    <option value="">Status: All</option>
+                    <option value="not-started">Not Started</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+
+                  <select
+                    className="filter-select"
+                    value={filters.priority}
+                    onChange={(e) => handleFilterChange('priority', e.target.value)}
+                  >
+                    <option value="">Priority: All</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+
+                  <select
+                    className="filter-select"
+                    value={filters.location}
+                    onChange={(e) => handleFilterChange('location', e.target.value)}
+                  >
+                    <option value="">Location: All</option>
+                    {uniqueLocations.map(location => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="filter-select"
+                    value={filters.assignedTo}
+                    onChange={(e) => handleFilterChange('assignedTo', e.target.value)}
+                  >
+                    <option value="">Assigned To: All</option>
+                    {uniqueAssignees.map(assignee => (
+                      <option key={assignee} value={assignee}>{assignee}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="filter-select"
+                    value={sortOrder}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                  >
+                    <option value="desc">Newest First</option>
+                    <option value="asc">Oldest First</option>
+                  </select>
+
+                  {Object.values(filters).some(Boolean) && (
+                    <button
+                      className="filter-clear-btn"
+                      onClick={() => {
+                        setFilters({
+                          status: '',
+                          priority: '',
+                          location: '',
+                          assignedTo: '',
+                          startDate: ''
+                        });
+                        setFilteredTasks(tasks);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="task-list">
+                {isLoading ? (
+                  <div>Loading tasks...</div>
+                ) : filteredTasks.length === 0 ? (
+                  <div>No tasks found</div>
+                ) : (
+                  filteredTasks.map(task => (
+                    <TaskCard 
+                      key={task._id} 
+                      task={task} 
+                      onTaskClick={setSelectedTask} 
+                    />
+                  ))
                 )}
               </div>
             </div>
+          </div>
 
-            <div className="task-list">
-              {isLoading ? (
-                <div>Loading tasks...</div>
-              ) : filteredTasks.length === 0 ? (
-                <div>No tasks found</div>
-              ) : (
-                filteredTasks.map(task => (
-                  <TaskCard 
-                    key={task._id} 
-                    task={task} 
-                    onTaskClick={setSelectedTask} 
-                  />
-                ))
-              )}
+          <div className="main-right">
+            <div className="activity-log-panel">
+              <h2>Task Logs</h2>
+              <div className="activity-log">
+                {activityLog.length === 0 ? (
+                  <div className="no-logs">No recent activity</div>
+                ) : (
+                  activityLog.map((log, index) => (
+                    <LogEntry key={log._id || index} log={log} />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="main-right">
-          <div className="activity-log-panel">
-            <h2>Task Logs</h2>
-            <div className="activity-log">
-              {activityLog.length === 0 ? (
-                <div className="no-logs">No recent activity</div>
-              ) : (
-                activityLog.map((log, index) => (
-                  <LogEntry key={log._id || index} log={log} />
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {selectedTask && (
-        <div className="task-modal-overlay" onClick={() => setSelectedTask(null)}>
-          <div className="task-modal" onClick={e => e.stopPropagation()}>
-            <div className="task-modal-header">
-              <h2 className="task-modal-title">{selectedTask.TaskName}</h2>
-              <button className="task-modal-close" onClick={() => setSelectedTask(null)}>×</button>
-            </div>
-            <div className="task-modal-content">
-              <div className="task-modal-section">
-                <h3 className="task-modal-section-title">Task Details</h3>
-                <div className="task-detail-row">
-                  <span className="detail-label">Task ID:</span>
-                  <span className="detail-value">{selectedTask.TaskID}</span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">Assigned To:</span>
-                  <span className="detail-value">{selectedTask.AssignedTo}</span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">Start Date:</span>
-                  <span className="detail-value">{formatDate(selectedTask.StartDate)}</span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">End Date:</span>
-                  <span className="detail-value">{formatDate(selectedTask.EndDate)}</span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">Description:</span>
-                  <span className="detail-value">{selectedTask.Description}</span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">Location:</span>
-                  <span className="detail-value">{selectedTask.Location}</span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">Priority:</span>
-                  <span className={`priority-badge ${selectedTask.Priority}`}>
-                    {selectedTask.Priority}
-                  </span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">Status:</span>
-                  <span className={`status-badge ${selectedTask.Status}`}>
-                    {selectedTask.Status.replace('-', ' ')}
-                  </span>
-                </div>
-                <div className="task-detail-row">
-                  <span className="detail-label">Progress:</span>
-                  <div className="progress-container">
-                    <div 
-                      className="progress-bar" 
-                      style={{ width: `${selectedTask.percentage}%` }}
-                    ></div>
-                    <span className="progress-text">{selectedTask.percentage}%</span>
+        {selectedTask && (
+          <div className="task-modal-overlay" onClick={() => setSelectedTask(null)}>
+            <div className="task-modal" onClick={e => e.stopPropagation()}>
+              <div className="task-modal-header">
+                <h2 className="task-modal-title">{selectedTask.TaskName}</h2>
+                <button className="task-modal-close" onClick={() => setSelectedTask(null)}>×</button>
+              </div>
+              <div className="task-modal-content">
+                <div className="task-modal-section">
+                  <h3 className="task-modal-section-title">Task Details</h3>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Task ID:</span>
+                    <span className="detail-value">{selectedTask.TaskID}</span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Assigned To:</span>
+                    <span className="detail-value">{selectedTask.AssignedTo}</span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Start Date:</span>
+                    <span className="detail-value">{formatDate(selectedTask.StartDate)}</span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">End Date:</span>
+                    <span className="detail-value">{formatDate(selectedTask.EndDate)}</span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Description:</span>
+                    <span className="detail-value">{selectedTask.Description}</span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Location:</span>
+                    <span className="detail-value">{selectedTask.Location}</span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Priority:</span>
+                    <span className={`priority-badge ${selectedTask.Priority}`}>
+                      {selectedTask.Priority}
+                    </span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Status:</span>
+                    <span className={`status-badge ${selectedTask.Status}`}>
+                      {selectedTask.Status.replace('-', ' ')}
+                    </span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Progress:</span>
+                    <div className="progress-container">
+                      <div 
+                        className="progress-bar" 
+                        style={{ width: `${selectedTask.percentage}%` }}
+                      ></div>
+                      <span className="progress-text">{selectedTask.percentage}%</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              {selectedTask.subtask && selectedTask.subtask.length > 0 && (
-                <div className="task-modal-section">
-                  <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
-                  <div className="subtasks-list">
-                    {selectedTask.subtask.map((subtask, index) => (
-                      <div key={index} className="subtask-item">
-                        <div className="subtask-content">
-                          <span className="subtask-name">{subtask.TaskName}</span>
-                          <div className="subtask-badges">
-                            <span className={`status-badge ${subtask.Status}`}>
-                              {subtask.Status.replace('-', ' ')}
-                            </span>
-                            <span className={`priority-badge ${subtask.Priority}`}>
-                              {subtask.Priority}
-                            </span>
+                
+                {selectedTask.subtask && selectedTask.subtask.length > 0 && (
+                  <div className="task-modal-section">
+                    <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
+                    <div className="subtasks-list">
+                      {selectedTask.subtask.map((subtask, index) => (
+                        <div key={index} className="subtask-item">
+                          <div className="subtask-content">
+                            <span className="subtask-name">{subtask.TaskName}</span>
+                            <div className="subtask-badges">
+                              <span className={`status-badge ${subtask.Status}`}>
+                                {subtask.Status.replace('-', ' ')}
+                              </span>
+                              <span className={`priority-badge ${subtask.Priority}`}>
+                                {subtask.Priority}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="subtask-detail">
+                            <span className="detail-label">Assigned To:</span>
+                            <span className="detail-value">{subtask.AssignedTo}</span>
                           </div>
                         </div>
-                        <div className="subtask-detail">
-                          <span className="detail-label">Assigned To:</span>
-                          <span className="detail-value">{subtask.AssignedTo}</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
-      {isModalOpen && (
-        <TaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onTaskCreated={(newTask) => {
-            handleTaskCreated(newTask);
-            setIsModalOpen(false);
-          }}
-        />
-      )}
+        )}
+        
+        {isModalOpen && (
+          <TaskModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onTaskCreated={(newTask) => {
+              handleTaskCreated(newTask);
+              setIsModalOpen(false);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 };

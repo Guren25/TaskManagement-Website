@@ -1,9 +1,17 @@
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
 .admin-dashboard {
+    flex: 1;
+    margin-left: 72px; /* Match the width of the SideNav */
+    padding: 1.5rem;
     font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     width: 100%;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 1.5rem;
     background-color: #f8f9fa;
     min-height: 100vh;
     color: #1d1d1f;
@@ -197,6 +205,7 @@
     background-color: #FF3B30;
     color: white;
 }
+
 @media (max-width: 768px) {
     .data-table {
         font-size: 0.8rem;
@@ -213,6 +222,11 @@
     
     .action-buttons button {
         width: 100%;
+    }
+    
+    .admin-dashboard {
+        margin-left: 0;
+        margin-bottom: 60px; /* Space for bottom navigation on mobile */
     }
 }
 
