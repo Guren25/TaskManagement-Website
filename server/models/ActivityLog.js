@@ -15,7 +15,7 @@ const activityLogSchema = new mongoose.Schema({
   },
   changeType: {
     type: String,
-    enum: ['Created', 'Updated', 'Deleted'],
+    enum: ['Created', 'Updated', 'Deleted', 'DueDate'],
     required: true
   },
   oldValue: {

@@ -80,7 +80,38 @@ const sendSubtaskAssignmentEmail = async (recipientEmail, mainTask, subtask) => 
     }
 };
 
+const sendDueDateEmail = async (recipientEmail, taskDetails) => {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: recipientEmail,
+            subject: `Task Due Date Reminder: ${taskDetails.TaskName}`,
+            html: `
+                <h2>Task Due Date Reminder</h2>
+                <p style="color: ${taskDetails.daysRemaining <= 3 ? '#ff3b30' : '#ff9500'}">
+                    <strong>This task is due in ${taskDetails.daysRemaining} day${taskDetails.daysRemaining > 1 ? 's' : ''}!</strong>
+                </p>
+                <p><strong>Task Name:</strong> ${taskDetails.TaskName}</p>
+                <p><strong>Description:</strong> ${taskDetails.Description}</p>
+                <p><strong>Location:</strong> ${taskDetails.Location}</p>
+                <p><strong>Priority:</strong> ${taskDetails.Priority}</p>
+                <p><strong>Due Date:</strong> ${new Date(taskDetails.EndDate).toLocaleDateString()}</p>
+                <br>
+                <p>Please ensure to complete the task before the due date.</p>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Due date reminder email sent:', info.response);
+        return true;
+    } catch (error) {
+        console.error('Error sending due date reminder:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     sendTaskAssignmentEmail,
-    sendSubtaskAssignmentEmail
+    sendSubtaskAssignmentEmail,
+    sendDueDateEmail
 }; 

@@ -1,5 +1,5 @@
 const Task = require('../models/Task');
-const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail } = require('../utils/emailService');
+const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail, sendDueDateEmail } = require('../utils/emailService');
 const ActivityLog = require('../models/ActivityLog');
 const { v4: uuidv4 } = require('uuid');
 
@@ -9,6 +9,57 @@ const calculateTaskPercentage = (subtasks) => {
     const totalSubtasks = subtasks.length;
     const completedSubtasks = subtasks.filter(subtask => subtask.Status === 'completed').length;
     return Math.round((completedSubtasks / totalSubtasks) * 100);
+};
+
+const checkDueDates = async () => {
+  try {
+    const tasks = await Task.find({ Status: { $ne: 'completed' } });
+    console.log(`Checking ${tasks.length} uncompleted tasks for due dates...`);
+
+    const now = new Date();
+    console.log('Current time:', now);
+
+    for (const task of tasks) {
+      const endDate = new Date(task.EndDate);
+      const daysUntilDue = Math.floor((endDate - now) / (1000 * 60 * 60 * 24));
+      
+      console.log(`Task "${task.TaskName}":`, {
+        endDate,
+        daysUntilDue,
+        taskStatus: task.Status
+      });
+      if (daysUntilDue === 7 || daysUntilDue === 3 || daysUntilDue === 1) {
+        console.log(`Sending notification for task "${task.TaskName}" (${daysUntilDue} days remaining)`);
+        
+        const notification = new ActivityLog({
+          logID: uuidv4(),
+          taskID: task._id,
+          changedBy: 'system',
+          changeType: 'Updated',
+          newValue: {
+            type: 'due_date_notification',
+            message: `Task "${task.TaskName}" is due in ${daysUntilDue} day${daysUntilDue > 1 ? 's' : ''}`,
+            daysRemaining: daysUntilDue
+          },
+          timestamp: new Date()
+        });
+        await notification.save();
+
+        try {
+          await sendDueDateEmail(task.AssignedTo, {
+            ...task.toObject(),
+            daysRemaining: daysUntilDue
+          });
+          console.log(`Email notification sent for task "${task.TaskName}"`);
+        } catch (emailError) {
+          console.error(`Error sending email for task "${task.TaskName}":`, emailError);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error checking due dates:', error);
+    throw error;
+  }
 };
 
 const taskController = {
@@ -43,12 +94,10 @@ const taskController = {
     createTask: async (req, res) => {
         try {
             const { TaskName, Description, Location, Priority, Status, AssignedTo, AssignedBy, StartDate, EndDate, subtask } = req.body;
-            
-            // Add default Priority to subtasks if missing
             if (subtask && subtask.length > 0) {
                 subtask.forEach(sub => {
                     if (!sub.Priority) {
-                        sub.Priority = 'medium'; // Default priority
+                        sub.Priority = 'low';
                     }
                 });
             }
@@ -104,7 +153,6 @@ const taskController = {
                 updateData.percentage = calculateTaskPercentage(updateData.subtask);
             }
             
-            // Check if task is being completed
             if (updateData.Status === 'completed' && oldTask.Status !== 'completed') {
                 const activityLog = new ActivityLog({
                     logID: uuidv4(),
@@ -127,8 +175,6 @@ const taskController = {
             if (!updatedTask) {
                 return res.status(404).json({ message: "Task not found" });
             }
-            
-            // Create general update log
             const activityLog = new ActivityLog({
                 logID: uuidv4(),
                 taskID: updatedTask._id,
@@ -374,8 +420,6 @@ const taskController = {
             }
 
             await task.save();
-
-            // Create activity log entry for status change
             const activityLog = new ActivityLog({
                 logID: uuidv4(),
                 taskID: taskId,
@@ -413,8 +457,20 @@ const taskController = {
         } catch (error) {
             res.status(500).json({ message: "Error filtering subtasks", error: error.message });
         }
+    },
+
+    checkTasksDueDate: async (req, res) => {
+        try {
+            await checkDueDates();
+            res.status(200).json({ message: 'Due date check completed' });
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
     }
 };
 
-module.exports = taskController;
+module.exports = {
+    ...taskController,
+    checkDueDates
+};
 

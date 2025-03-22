@@ -574,12 +574,14 @@ select.filter-input {
   align-items: center;
   font-size: 0.85rem;
   gap: 0.5rem;
+  text-align: left;
 }
 
 .detail-label {
   color: #6e6e73;
   width: 90px;
   flex-shrink: 0;
+  margin-bottom: 10px;
 }
 
 .detail-value {
@@ -1199,4 +1201,27 @@ input[type="date"].filter-select {
 
 .task-list::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+.due-date-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.due-critical {
+  background-color: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+}
+
+.due-warning {
+  background-color: rgba(255, 149, 0, 0.1);
+  color: #ff9500;
+}
+
+.due-notice {
+  background-color: rgba(0, 122, 255, 0.1);
+  color: #007aff;
 } 

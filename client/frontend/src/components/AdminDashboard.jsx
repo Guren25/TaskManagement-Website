@@ -28,11 +28,40 @@ ChartJS.register(
 );
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString();
+  const date = new Date(dateString);
+  // Format: MM/DD/YYYY
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  // Or if you prefer: MMMM DD, YYYY format
+  // return date.toLocaleDateString('en-US', {
+  //   year: 'numeric',
+  //   month: 'long',
+  //   day: 'numeric'
+  // });
 };
 
 const TaskCard = ({ task, onTaskClick }) => {
   console.log('Rendering task:', task);
+  const getDueDateStatus = (endDate) => {
+    const now = new Date();
+    const due = new Date(endDate);
+    const daysUntilDue = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+
+    if (daysUntilDue <= 1) {
+      return { class: 'due-critical', text: 'Due tomorrow!' };
+    } else if (daysUntilDue <= 3) {
+      return { class: 'due-warning', text: `Due in ${daysUntilDue} days` };
+    } else if (daysUntilDue <= 7) {
+      return { class: 'due-notice', text: `Due in ${daysUntilDue} days` };
+    }
+    return null;
+  };
+
+  const dueStatus = getDueDateStatus(task.EndDate);
+
   return (
     <div className="task-card" onClick={() => onTaskClick(task)}>
       <div className="task-header">
@@ -45,6 +74,9 @@ const TaskCard = ({ task, onTaskClick }) => {
               <span className="task-date">
                 <span className="date-label">Start:</span> {formatDate(task.StartDate)}
               </span>
+              <span className="task-date">
+                <span className="date-label">End:</span> {formatDate(task.EndDate)}
+              </span>
               <span className="task-assignee">Assigned to: {task.AssignedTo}</span>
               {task.subtask && task.subtask.length > 0 && (
                 <span>Subtasks: {task.subtask.length}</span>
@@ -55,6 +87,11 @@ const TaskCard = ({ task, onTaskClick }) => {
             <span className={`status-badge ${task.Status}`}>
               {task.Status.replace('-', ' ')}
             </span>
+            {dueStatus && (
+              <div className={`due-date-badge ${dueStatus.class}`}>
+                {dueStatus.text}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -772,6 +809,14 @@ const AdminDashboard = () => {
                 <div className="task-detail-row">
                   <span className="detail-label">Assigned To:</span>
                   <span className="detail-value">{selectedTask.AssignedTo}</span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">Start Date:</span>
+                  <span className="detail-value">{formatDate(selectedTask.StartDate)}</span>
+                </div>
+                <div className="task-detail-row">
+                  <span className="detail-label">End Date:</span>
+                  <span className="detail-value">{formatDate(selectedTask.EndDate)}</span>
                 </div>
                 <div className="task-detail-row">
                   <span className="detail-label">Description:</span>

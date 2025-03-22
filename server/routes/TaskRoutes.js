@@ -30,9 +30,19 @@ router.get('/filter/subtask/:Subtask', taskController.getTaskBySubtask);
 router.post('/:id/subtask', taskController.addSubtask);
 router.patch('/:taskId/subtask/:subtaskId/status', taskController.updateSubtaskStatus);
 
-// Status update routes
+
 router.patch('/:id/status', taskController.updateTaskStatus);
 
 router.get('/:taskId/subtask/filter/priority/:Priority', taskController.getSubtasksByPriority);
+
+//Route to manually trigger due date checks
+router.post('/check-due-dates', async (req, res) => {
+  try {
+    await taskController.checkDueDates();
+    res.status(200).json({ message: 'Due date check triggered successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error checking due dates', error: error.message });
+  }
+});
 
 module.exports = router;
