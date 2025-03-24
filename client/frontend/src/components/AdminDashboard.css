@@ -1,6 +1,7 @@
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  box-sizing: border-box;
 }
 *::-webkit-scrollbar {
   width: 8px;
@@ -22,15 +23,47 @@
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+/* Update main background body color */
+body {
+  background-color: #E8F5E9 !important; /* Light green background with !important to override */
+}
+
+/* Fix the admin dashboard layout */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #E8F5E9;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .admin-dashboard {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   width: 100%;
   max-width: 1800px;
   margin: 0 auto;
-  padding: 2rem 3rem;
-  background-color: #f5f5f7;
+  padding: 1.5rem 1rem;
+  background-color: #E8F5E9; /* Light green background */
   min-height: 100vh;
   color: #1d1d1f;
+}
+
+/* Fix the app-container */
+.app-container {
+  background-color: #E8F5E9;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure root fills entire viewport */
+#root {
+  background-color: #E8F5E9;
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .admin-dashboard-header {

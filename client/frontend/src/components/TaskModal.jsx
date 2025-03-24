@@ -164,8 +164,8 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                 <option value="">Select an engineer</option>
                 {engineers.length > 0 ? (
                   engineers.map(engineer => (
-                    <option key={engineer._id} value={engineer.email}>
-                      {engineer.firstname} {engineer.lastname} ({engineer.email})
+                    <option key={engineer._id} value={engineer.firstname && engineer.lastname}>
+                      {engineer.firstname} {engineer.lastname}
                     </option>
                   ))
                 ) : (

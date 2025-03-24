@@ -1,16 +1,17 @@
 .side-nav {
-  background: white;
+  background: #2E7D32; /* Deep forest green */
   width: 72px;
   height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
-  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  border-right: none; /* Remove border */
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 1rem 0;
   z-index: 100;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .brand-icon {
@@ -41,17 +42,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6e6e73;
+  color: rgba(255, 255, 255, 0.8); /* Light text for contrast */
   position: relative;
   transition: all 0.2s ease;
 }
 
 .nav-item:hover {
-  color: #1d1d1f;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .nav-item.active {
-    color: rgb(0, 122, 255);
+  color: #ffffff;
 }
 
 .nav-item.active::before {
@@ -62,7 +64,7 @@
   transform: translateY(-50%);
   width: 3px;
   height: 24px;
-  background-color: rgb(0, 122, 255);
+  background-color: #81C784; /* Light green accent */
   border-radius: 0 4px 4px 0;
 }
 
@@ -73,7 +75,7 @@
   left: 100%;
   top: 50%;
   transform: translateY(-50%);
-  background: #1d1d1f;
+  background: #1b5e20; /* Darker green for tooltips */
   color: white;
   padding: 0.5rem 0.75rem;
   border-radius: 4px;

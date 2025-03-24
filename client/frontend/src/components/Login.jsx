@@ -40,7 +40,7 @@ const Login = () => {
       try {
         console.log("Attempting login with:", { email: formData.email });
         const response = await login(formData.email, formData.password);
-        if (response.user.role === 'admin') {
+        if (response.user.role === 'admin' || response.user.role === 'manager') {
           navigate('/admin/dashboard');
         } else {
           navigate('/dashboard');
