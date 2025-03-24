@@ -29,7 +29,6 @@ const checkDueDates = async () => {
         taskStatus: task.Status
       });
 
-      // Check for overdue tasks (negative days) or upcoming due dates
       if (daysUntilDue < 0 || daysUntilDue === 7 || daysUntilDue === 3 || daysUntilDue === 1) {
         console.log(`Sending notification for task "${task.TaskName}" (${daysUntilDue} days)`);
         

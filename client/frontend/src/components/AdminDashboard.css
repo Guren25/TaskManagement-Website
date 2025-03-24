@@ -23,12 +23,9 @@
   background-color: rgba(0, 0, 0, 0.3);
 }
 
-/* Update main background body color */
 body {
-  background-color: #E8F5E9 !important; /* Light green background with !important to override */
+  background-color: #E8F5E9 !important; 
 }
-
-/* Fix the admin dashboard layout */
 .admin-layout {
   display: flex;
   min-height: 100vh;

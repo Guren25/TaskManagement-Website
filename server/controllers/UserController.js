@@ -8,7 +8,6 @@ const userController = {
             const { role } = req.query;
             let query = {};
             
-            // If role is specified, filter by role
             if (role) {
                 query.role = role;
             }
@@ -49,7 +48,8 @@ const userController = {
                 middlename,
                 email,
                 password: hashedPassword,
-                role
+                role,
+                status: "active"
             });
 
             await user.save();
@@ -64,7 +64,7 @@ const userController = {
 
     updateUser: async (req, res) => {
         try {
-            const { firstname, lastname, middlename, email, role } = req.body;
+            const { firstname, lastname, middlename, email, role, status } = req.body;
             const userId = req.params.id;
 
             const user = await User.findById(userId);
@@ -86,7 +86,8 @@ const userController = {
                     lastname,
                     middlename,
                     email,
-                    role
+                    role,
+                    status
                 },
                 { new: true }
             ).select("-password");
@@ -112,27 +113,19 @@ const userController = {
     login: async (req, res) => {
         try {
             const { email, password } = req.body;
-            
-            // Find user by email
             const user = await User.findOne({ email });
             if (!user) {
                 return res.status(401).json({ message: "Invalid email or password" });
             }
-
-            // Compare password
             const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
                 return res.status(401).json({ message: "Invalid email or password" });
             }
-
-            // Generate JWT token
             const token = jwt.sign(
                 { id: user._id, role: user.role },
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
-
-            // Remove password from user object
             const userResponse = user.toObject();
             delete userResponse.password;
 
@@ -173,24 +166,20 @@ const userController = {
 
     registerUser: async (req, res) => {
         try {
-            const { firstname, lastname, middlename, email, password, role } = req.body;
-            
-            // Check if user already exists
+            const { firstname, lastname, middlename, email, phone, password, role } = req.body;
             const existingUser = await User.findOne({ email });
             if (existingUser) {
                 return res.status(400).json({ message: "User with this email already exists" });
             }
             
-            // Hash the password
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
-            
-            // Create new user
             const newUser = new User({
                 firstname,
                 lastname,
                 middlename: middlename || "",
                 email,
+                phone,
                 password: hashedPassword,
                 role
             });

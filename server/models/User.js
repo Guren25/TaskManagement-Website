@@ -22,12 +22,25 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    phone: {
+        type: String,
+        required: true,
+    },
     role: {
         type: String,
         required: true,
         enum: ["manager", "client", "engineer", "admin"],
         default: "client",
     },
+    isTemporaryPassword: {
+        type: Boolean,
+        default: false
+    },
+    status:{
+        type: String,
+        required: true,
+        enume: ["active", "deactivated"]
+    }
 });
 
 const User = mongoose.model("User", userSchema);

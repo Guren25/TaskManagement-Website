@@ -44,7 +44,15 @@ const Personnel = () => {
                 const { password, ...updateData } = formData;
                 await axios.put(`/api/users/${editingUser._id}`, updateData);
             } else {
-                await axios.post('/api/users/register', formData);
+                const tempPassword = generateTemporaryPassword();
+                const userData = {
+                    ...formData,
+                    password: tempPassword,
+                    isTemporaryPassword: true
+                };
+                await axios.post('/api/users/register', userData);
+                
+                alert(`User created successfully! Temporary password: ${tempPassword}\nUser will be prompted to change it on first login.`);
             }
             setIsModalOpen(false);
             setEditingUser(null);
@@ -53,6 +61,15 @@ const Personnel = () => {
         } catch (error) {
             console.error('Error saving user:', error);
         }
+    };
+
+    const generateTemporaryPassword = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        let password = '';
+        for (let i = 0; i < 10; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
     };
 
     const handleDelete = async (userId) => {
@@ -85,7 +102,6 @@ const Personnel = () => {
             lastname: '',
             middlename: '',
             email: '',
-            password: '',
             role: 'client'
         });
     };
@@ -98,47 +114,36 @@ const Personnel = () => {
                     <div>
                         <h1 className="dashboard-title">Team Management</h1>
                     </div>
-                    <button className="add-task-btn" onClick={() => {
-                        resetForm();
-                        setEditingUser(null);
-                        setIsModalOpen(true);
-                    }}>
-                        Personnel
-                    </button>
                 </div>
 
-                <div className="dashboard-layout">
-                    <div className="dashboard-panel">
-                        <div className="filter-section">
-                            <div 
-                                className="filter-toggle"
-                                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                <div className="personnel-container">
+                    <div className="personnel-content-wrapper">
+                        <div className="filter-controls-row">
+                            <select 
+                                className="personnel-select"
+                                value={filters.role}
+                                onChange={(e) => setFilters({ ...filters, role: e.target.value })}
                             >
-                                <span>Filters</span>
-                                <span className={`filter-toggle-icon ${isFilterExpanded ? 'expanded' : ''}`}>▼</span>
-                            </div>
+                                <option value="">All Roles</option>
+                                <option value="client">Client</option>
+                                <option value="engineer">Engineer</option>
+                                <option value="manager">Manager</option>
+                                <option value="admin">Admin</option>
+                            </select>
                             
-                            <div className={`filter-content ${isFilterExpanded ? 'expanded' : ''}`}>
-                                <div className="filter-row">
-                                    <div className="filter-group">
-                                        <label className="filter-label">Role</label>
-                                        <select 
-                                            className="filter-input"
-                                            value={filters.role}
-                                            onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-                                        >
-                                            <option value="">All Roles</option>
-                                            <option value="client">Client</option>
-                                            <option value="engineer">Engineer</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="admin">Admin</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
+                            <button 
+                                className="add-personnel-btn" 
+                                onClick={() => {
+                                    resetForm();
+                                    setEditingUser(null);
+                                    setIsModalOpen(true);
+                                }}
+                            >
+                                Add Personnel
+                            </button>
                         </div>
 
-                        <div className="table-container">
+                        <div className="personnel-table">
                             <table className="data-table">
                                 <thead>
                                     <tr>
@@ -151,9 +156,7 @@ const Personnel = () => {
                                 <tbody>
                                     {personnel.map(user => (
                                         <tr key={user._id}>
-                                            <td>
-                                                {user.firstname} {user.middlename} {user.lastname}
-                                            </td>
+                                            <td>{user.firstname} {user.middlename} {user.lastname}</td>
                                             <td>{user.email}</td>
                                             <td>
                                                 <span className={`role-badge ${user.role}`}>
@@ -173,6 +176,12 @@ const Personnel = () => {
                                                         onClick={() => handleDelete(user._id)}
                                                     >
                                                         Delete
+                                                    </button>
+                                                    <button
+                                                        className="view-btn"
+                                                        onClick={() => handleView(user)}
+                                                    >
+                                                        Deactivate
                                                     </button>
                                                 </div>
                                             </td>
@@ -224,17 +233,6 @@ const Personnel = () => {
                                         required
                                     />
                                 </div>
-                                {!editingUser && (
-                                    <div className="form-group">
-                                        <input
-                                            type="password"
-                                            placeholder="Password"
-                                            value={formData.password}
-                                            onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                            required
-                                        />
-                                    </div>
-                                )}
                                 <div className="form-group">
                                     <select
                                         value={formData.role}
