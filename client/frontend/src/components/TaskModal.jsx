@@ -176,6 +176,31 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               {engineers.length === 0 && <span className="admin-task-error-message">No engineers found</span>}
             </div>
           </div>
+          <div className="admin-task-form-row">
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">Client</label>
+              <input
+                type="text"
+                className={`admin-task-form-input ${errors.Client ? 'error' : ''}`}
+                value={taskData.Client}
+                onChange={(e) => setTaskData({ ...taskData, Client: e.target.value })}
+                placeholder="Enter client name"
+              />
+              {errors.Client && <span className="admin-task-error-message">{errors.Client}</span>}
+            </div>
+            
+            <div className="admin-task-form-group">
+              <label className="admin-task-form-label">Assigned by</label>
+              <input
+                type="text"
+                className={`admin-task-form-input ${errors.AssignedBy ? 'error' : ''}`}
+                value={taskData.AssignedBy}
+                onChange={(e) => setTaskData({ ...taskData, AssignedBy: e.target.value })}
+                placeholder="Enter assigner's email"
+                readOnly 
+              />
+            </div>
+          </div>
 
           <div className="admin-task-form-row">
             <div className="admin-task-form-group">
@@ -188,8 +213,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                 placeholder="dd/mm/yyyy"
               />
               {errors.StartDate && <span className="admin-task-error-message">{errors.StartDate}</span>}
-            </div>
-
+            </div>  
             <div className="admin-task-form-group">
               <label className="admin-task-form-label">End Date</label>
               <input
@@ -201,19 +225,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               />
               {errors.EndDate && <span className="admin-task-error-message">{errors.EndDate}</span>}
             </div>
-          </div>
-
-          <div className="admin-task-form-group">
-            <label className="admin-task-form-label">Assigned By</label>
-            <input
-              type="text"
-              className={`admin-task-form-input ${errors.AssignedBy ? 'error' : ''}`}
-              value={taskData.AssignedBy}
-              onChange={(e) => setTaskData({ ...taskData, AssignedBy: e.target.value })}
-              placeholder="Enter assigner's email"
-              readOnly
-            />
-            {errors.AssignedBy && <span className="admin-task-error-message">{errors.AssignedBy}</span>}
           </div>
 
           <div className="admin-task-modal-footer">

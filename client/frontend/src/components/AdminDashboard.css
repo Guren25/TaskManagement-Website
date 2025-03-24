@@ -76,7 +76,7 @@ body {
 .welcome-text {
   font-size: 1.5rem;
   font-weight: 500;
-  color: #1d1d1f;
+  color: #2E7D32;
 }
 
 .header-right {
@@ -167,14 +167,19 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.25rem;
-  padding-bottom: 0.5rem;
+  padding: 1.2rem;
   border-bottom: 1px solid #e5e7eb;
+  background-color: #3A7D44;
+  color: white;
+  margin: -1.5rem -1.5rem 1.25rem -1.5rem;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .section-header h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1d1d1f;
+  color: white;
   margin: 0;
 }
 
@@ -185,23 +190,23 @@ body {
 
 .range-select {
   padding: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 6px;
-  background-color: white;
+  background-color: #ffffff;
   font-size: 0.9rem;
-  color: #374151;
+  color: rgb(0, 0, 0);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .range-select:hover {
-  border-color: #d1d5db;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .range-select:focus {
   outline: none;
-  border-color: #007AFF;
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+  border-color: white;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 .status-metrics {
@@ -264,15 +269,14 @@ body {
   padding: 0.5rem 1rem;
   width: auto;
   min-width: 90px;
-  background-color: #007AFF;
-  color: white;
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
   border: none;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .add-task-btn::before {
@@ -296,8 +300,7 @@ body {
 }
 
 .add-task-btn:hover {
-  background-color: #0062CC;
-  box-shadow: 0 5px 15px rgba(0, 122, 255, 0.4);
+  background-color: #ffffff;
   transform: translateY(-2px);
 }
 
@@ -382,8 +385,8 @@ body {
   margin: 0;
   padding: 1.2rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  color: #1d1d1f;
-  background-color: #f9f9fb;
+  color: white;
+  background-color: #3A7D44;
 }
 
 .filter-section {
@@ -810,9 +813,12 @@ select.filter-input {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 500;
-  color: #1d1d1f;
+  color: white;
   border-bottom: 1px solid #f0f2f5;
   text-align: left;
+  background-color: #3A7D44;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .activity-log {
@@ -971,25 +977,33 @@ select.filter-input {
 .task-modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  align-items: center;
+  margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+  padding: 1rem 1.5rem;
+  background-color: #2E7D32;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border-bottom: none;
 }
 
 .task-modal-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1d1d1f;
+  color: white;
+  margin: 0;
 }
 
 .task-modal-close {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #6e6e73;
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   padding: 0.5rem;
+}
+
+.task-modal-close:hover {
+  color: white;
 }
 
 .task-modal-content {
@@ -1045,13 +1059,17 @@ select.filter-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #3A7D44;
+  color: white;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .task-list-title {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 500;
-  color: #1d1d1f;
+  color: white;
 }
 
 /* Add pagination styles */

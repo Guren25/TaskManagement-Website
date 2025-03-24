@@ -1,7 +1,7 @@
 .admin-layout {
     display: flex;
     min-height: 100vh;
-    background-color: #E8F5E9; /* Match admin dashboard */
+    background-color: #f8f9fa;
 }
 
 .admin-dashboard {
@@ -12,7 +12,7 @@
     width: 100%;
     max-width: 1600px;
     margin: 0 auto;
-    background-color: #E8F5E9; /* Light green background */
+    background-color: #f8f9fa;
     min-height: 100vh;
     color: #1d1d1f;
 }
@@ -32,7 +32,7 @@
     font-weight: 600;
     margin: 0;
     letter-spacing: -0.02em;
-    color: #2E7D32; /* Dark green to match sidebar */
+    color: #1d1d1f;
 }
 
 .dashboard-subtitle {
@@ -45,9 +45,8 @@
 .table-container {
     overflow-x: auto;
     background-color: white;
-    border-radius: 12px;
+    border-radius: 8px;
     margin-top: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .data-table {
@@ -89,18 +88,18 @@
 }
 
 .role-badge.admin {
-    background-color: rgba(46, 125, 50, 0.1);
-    color: #2E7D32;
+    background-color: rgba(88, 86, 214, 0.1);
+    color: #5856d6;
 }
 
 .role-badge.manager {
-    background-color: rgba(76, 175, 80, 0.1);
-    color: #4CAF50;
+    background-color: rgba(0, 122, 255, 0.1);
+    color: #007AFF;
 }
 
 .role-badge.engineer {
-    background-color: rgba(129, 199, 132, 0.1);
-    color: #81C784;
+    background-color: rgba(52, 199, 89, 0.1);
+    color: #34c759;
 }
 
 .role-badge.client {

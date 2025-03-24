@@ -30,18 +30,11 @@ ChartJS.register(
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
-  // Format: MM/DD/YYYY
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
-  });
-  // Or if you prefer: MMMM DD, YYYY format
-  // return date.toLocaleDateString('en-US', {
-  //   year: 'numeric',
-  //   month: 'long',
-  //   day: 'numeric'
-  // });
+  })
 };
 
 const TaskCard = ({ task, onTaskClick }) => {
@@ -79,6 +72,7 @@ const TaskCard = ({ task, onTaskClick }) => {
                 <span className="date-label">End:</span> {formatDate(task.EndDate)}
               </span>
               <span className="task-assignee">Assigned to: {task.AssignedTo}</span>
+              <span className="task-client">Client: {task.Client}</span>
               {task.subtask && task.subtask.length > 0 && (
                 <span>Subtasks: {task.subtask.length}</span>
               )}
@@ -696,14 +690,6 @@ const AdminDashboard = () => {
             <div className="task-section">
               <div className="section-header">
                 <h2>All Tasks</h2>
-                <button 
-                  className="add-task-btn"
-                  onClick={() => setIsModalOpen(true)}
-                >
-                  Add Task
-                </button>
-              </div>
-              <div className="section-header">
                 <div className="filter-group">
                   <select
                     className="filter-select"
@@ -776,6 +762,12 @@ const AdminDashboard = () => {
                     </button>
                   )}
                 </div>
+                <button 
+                  className="add-task-btn"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Add Task
+                </button>
               </div>
 
               <div className="task-list">

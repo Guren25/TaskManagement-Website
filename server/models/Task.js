@@ -44,6 +44,10 @@ const taskSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    Client: {
+        type: String,
+        required: true,
+    },
     CreatedAt: {
         type: Date,
         default: Date.now,

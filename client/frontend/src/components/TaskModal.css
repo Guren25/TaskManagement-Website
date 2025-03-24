@@ -23,13 +23,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  margin: -1rem -1.5rem 1.25rem -1.5rem;
+  background-color: #2E7D32;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-bottom: none;
 }
 
 .admin-task-modal-title {
-  color: #000000;
+  color: white;
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0;
@@ -39,7 +42,7 @@
   background: none;
   border: none;
   font-size: 1.2rem;
-  color: #86868b;
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -50,7 +53,7 @@
 }
 
 .admin-task-modal-close:hover {
-  color: #000000;
+  color: white;
 }
 
 .admin-task-modal-form {
@@ -154,13 +157,13 @@
 }
 
 .admin-task-btn-submit {
-  background-color: #000000;
+  background-color: #2E7D32;
   border: none;
   color: white;
 }
 
 .admin-task-btn-submit:hover {
-  background-color: #333333;
+  background-color: #1B5E20;
 }
 
 .admin-task-error-message {

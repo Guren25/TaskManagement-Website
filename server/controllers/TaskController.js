@@ -97,7 +97,7 @@ const taskController = {
 
     createTask: async (req, res) => {
         try {
-            const { TaskName, Description, Location, Priority, Status, AssignedTo, AssignedBy, StartDate, EndDate, subtask } = req.body;
+            const { TaskName, Description, Location, Priority, Status, AssignedTo, AssignedBy, StartDate, EndDate, Client, subtask } = req.body;
             if (subtask && subtask.length > 0) {
                 subtask.forEach(sub => {
                     if (!sub.Priority) {
@@ -114,6 +114,7 @@ const taskController = {
                 Status, 
                 AssignedTo, 
                 AssignedBy, 
+                Client,
                 StartDate, 
                 EndDate, 
                 subtask
