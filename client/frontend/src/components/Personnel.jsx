@@ -14,7 +14,9 @@ const Personnel = () => {
         middlename: '',
         email: '',
         password: '',
-        role: 'client'
+        phone: '',
+        role: 'client',
+        status: 'active'
     });
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
@@ -50,6 +52,9 @@ const Personnel = () => {
                     password: tempPassword,
                     isTemporaryPassword: true
                 };
+                
+                console.log('Sending user data:', userData);
+                
                 await axios.post('/api/users/register', userData);
                 
                 alert(`User created successfully! Temporary password: ${tempPassword}\nUser will be prompted to change it on first login.`);
@@ -60,6 +65,13 @@ const Personnel = () => {
             fetchPersonnel();
         } catch (error) {
             console.error('Error saving user:', error);
+            console.error('Full error details:', error.response?.data);
+            
+            if (error.response && error.response.data && error.response.data.message) {
+                alert(`Error: ${error.response.data.message}`);
+            } else {
+                alert('An error occurred while saving the user. Please try again.');
+            }
         }
     };
 
@@ -91,7 +103,9 @@ const Personnel = () => {
             middlename: user.middlename || '',
             email: user.email,
             role: user.role,
-            password: ''
+            phone: user.phone || '',
+            password: '',
+            status: user.status
         });
         setIsModalOpen(true);
     };
@@ -102,7 +116,9 @@ const Personnel = () => {
             lastname: '',
             middlename: '',
             email: '',
-            role: 'client'
+            role: 'client',
+            phone: '',
+            status: 'active'
         });
     };
 
@@ -230,6 +246,15 @@ const Personnel = () => {
                                         placeholder="Email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <input
+                                        type="tel"
+                                        placeholder="Phone Number"
+                                        value={formData.phone || ''}
+                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
                                         required
                                     />
                                 </div>

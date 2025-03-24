@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setError(null);
-      const res = await axios.post('/users/register', userData);
+      const res = await axios.post('/api/users/register', userData);
       return res.data;
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");

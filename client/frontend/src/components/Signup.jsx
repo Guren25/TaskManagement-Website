@@ -27,18 +27,36 @@ const Signup = () => {
     });
   };
 
-  const validate = () => {
+  const validate = async () => {
     const errors = {};
     if (!formData.firstname) errors.firstname = "First name is required";
     if (!formData.lastname) errors.lastname = "Last name is required";
-    if (!formData.email) errors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = "Email is invalid";
+    
+    if (!formData.email) {
+        errors.email = "Email is required";
+    } else {
+        try {
+            const response = await fetch('/api/validate-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: formData.email })
+            });
+            const data = await response.json();
+            if (!data.isValid) {
+                errors.email = data.message;
+            }
+        } catch (error) {
+            errors.email = "Error validating email";
+        }
+    }
     
     if (!formData.password) errors.password = "Password is required";
     else if (formData.password.length < 6) errors.password = "Password must be at least 6 characters";
     
     if (formData.password !== formData.confirmPassword) 
-      errors.confirmPassword = "Passwords do not match";
+        errors.confirmPassword = "Passwords do not match";
     
     return errors;
   };
@@ -46,21 +64,20 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const errors = validate();
+    setIsSubmitting(true);
+    const errors = await validate();
     setFormErrors(errors);
     
     if (Object.keys(errors).length === 0) {
-      setIsSubmitting(true);
-      try {
-        const { confirmPassword, ...userData } = formData;
-        await register(userData);
-        navigate('/login');
-      } catch (err) {
-        console.error("Registration error:", err);
-      } finally {
-        setIsSubmitting(false);
-      }
+        try {
+            const { confirmPassword, ...userData } = formData;
+            await register(userData);
+            navigate('/login');
+        } catch (err) {
+            console.error("Registration error:", err);
+        }
     }
+    setIsSubmitting(false);
   };
 
   return (

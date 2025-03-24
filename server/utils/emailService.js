@@ -117,10 +117,34 @@ const sendDueDateEmail = async (recipientEmail, taskDetails) => {
         console.error('Error sending due date reminder:', error);
         throw error;
     }
+
+};
+const sendWelcomeEmail = async (user, tempPassword) => {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user.email.replace(/['"]+/g, ''),
+            subject: 'System Credentials',
+            html: `
+                <h2>Welcome to the team</h2>
+                <p>Dear ${user.firstname} ${user.lastname},</p>
+                <p>Welcome to the team! We're excited to have you on board.</p>
+                <p>Your temporary password is: ${tempPassword}</p>
+                <p>Please log in to the system to view more details and start working on your tasks.</p>
+            `
+        };
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Welcome email sent:', info.response);
+        return true;
+    } catch (error) {
+        console.error('Error sending welcome email:', error);
+        throw error;
+    }
 };
 
 module.exports = {
     sendTaskAssignmentEmail,
     sendSubtaskAssignmentEmail,
-    sendDueDateEmail
+    sendDueDateEmail,
+    sendWelcomeEmail
 }; 

@@ -1,6 +1,32 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const emailService = require("../utils/emailService");
+const emailValidator = require("email-validator");
+const dns = require("dns");
+
+const validateEmail = (email) => {
+    try {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return {
+                isValid: false,
+                message: "Invalid email format"
+            };
+        }
+        
+        return {
+            isValid: true,
+            message: "Email is valid"
+        };
+    } catch (error) {
+        console.error("Email validation failed:", error);
+        return {
+            isValid: false,
+            message: error.message
+        };
+    }
+};
 
 const userController = {
     getAllUsers: async (req, res) => {
@@ -33,7 +59,7 @@ const userController = {
 
     createUser: async (req, res) => {
         try {
-            const { firstname, lastname, middlename, email, password, role } = req.body;
+            const { firstname, lastname, middlename, email, password, role, phone, isTemporaryPassword } = req.body;
             const existingUser = await User.findOne({ email });
             if (existingUser) {
                 return res.status(400).json({ message: "User already exists with this email" });
@@ -41,6 +67,10 @@ const userController = {
 
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
+            const emailValidation = await validateEmail(email);
+            if (!emailValidation.isValid) {
+                return res.status(400).json({ message: emailValidation.message });
+            }
 
             const user = new User({
                 firstname,
@@ -49,10 +79,22 @@ const userController = {
                 email,
                 password: hashedPassword,
                 role,
+                phone,
+                isTemporaryPassword: isTemporaryPassword || false,
                 status: "active"
             });
 
             await user.save();
+            
+            if (isTemporaryPassword) {
+                try {
+                    await emailService.sendWelcomeEmail(user, password);
+                    console.log(`Welcome email sent to ${email} with temporary password`);
+                } catch (emailError) {
+                    console.error('Failed to send welcome email:', emailError);
+                }
+            }
+            
             const userResponse = user.toObject();
             delete userResponse.password;
 
@@ -213,6 +255,8 @@ const userController = {
             res.status(401).json({ valid: false });
         }
     },
+
+    validateEmail,
 };
 
 module.exports = userController;
