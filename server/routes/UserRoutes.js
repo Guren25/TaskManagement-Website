@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 router.post('/login', userController.login);
 router.post('/register', userController.createUser);
 router.get('/verify-token', auth, userController.verifyToken);
+router.get('/verify-email/:token', userController.verifyEmail);
 
 router.get('/', userController.getAllUsers);
 router.get('/:id', userController.getUserById);

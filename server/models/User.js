@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
     status:{
         type: String,
         required: true,
-        enum: ["active", "deactivated"]
+        enum: ["verified", "unverified", "deactivated"]
     }
 });
 

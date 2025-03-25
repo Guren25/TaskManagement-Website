@@ -28,7 +28,6 @@ const connectDB = async () => {
 
 connectDB();
 
-app.use('/api', apiRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/activity-logs', activityLogRoutes);

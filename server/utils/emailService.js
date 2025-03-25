@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -142,9 +143,46 @@ const sendWelcomeEmail = async (user, tempPassword) => {
     }
 };
 
+const sendVerificationEmail = async (user) => {
+    try {
+        const verificationToken = jwt.sign(
+            { id: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        const verificationUrl = `${process.env.BACKEND_URL}/api/users/verify-email/${verificationToken}`;
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: 'Verify Your Email',
+            html: `
+                <h2>Email Verification</h2>
+                <p>Dear ${user.firstname} ${user.lastname},</p>
+                <p>Please click the link below to verify your email address:</p>
+                <p><a href="${verificationUrl}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+                <p>Or copy and paste this link in your browser:</p>
+                <p>${verificationUrl}</p>
+                <p>This link will expire in 24 hours.</p>
+                <p>If you did not create an account, please ignore this email.</p>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Verification email sent:', info.response);
+        return true;
+    } catch (error) {
+        console.error('Error sending verification email:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     sendTaskAssignmentEmail,
     sendSubtaskAssignmentEmail,
     sendDueDateEmail,
-    sendWelcomeEmail
+    sendWelcomeEmail,
+    sendVerificationEmail,
+    verifyConnection
 }; 
