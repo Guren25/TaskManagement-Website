@@ -1,8 +1,22 @@
+:root {
+  --primary-color: #3A7D44;
+  --text-light: white;
+  --text-dark: #333;
+  --bg-light: white;
+  --border-light: #e5e7eb;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
 * {
+  box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-  box-sizing: border-box;
 }
+
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -26,6 +40,7 @@
 body {
   background-color: #E8F5E9 !important; 
 }
+
 .admin-layout {
   display: flex;
   min-height: 100vh;
@@ -37,16 +52,15 @@ body {
 
 .admin-dashboard {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  width: 100%;
+  width: calc(100% - 72px);
   max-width: 1800px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-  background-color: #E8F5E9; /* Light green background */
+  margin-left: 72px;
+  padding: 1.5rem;
+  background-color: #E8F5E9;
   min-height: 100vh;
   color: #1d1d1f;
 }
 
-/* Fix the app-container */
 .app-container {
   background-color: #E8F5E9;
   width: 100%;
@@ -54,7 +68,6 @@ body {
   padding: 0;
 }
 
-/* Ensure root fills entire viewport */
 #root {
   background-color: #E8F5E9;
   min-height: 100vh;
@@ -93,7 +106,7 @@ body {
 
 .dashboard-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -141,69 +154,168 @@ body {
 
 .dashboard-main {
   display: grid;
+  grid-template-columns: 1fr 350px;
   gap: 1.5rem;
-  grid-template-columns: 1fr 320px;
   margin-top: 1.5rem;
 }
 
 .project-status-section {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 0;
   margin-bottom: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .project-status-section:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.project-status-section .section-header {
+  background-color: #3A7D44 !important;
+  color: white !important;
+  border-radius: 0;
+  padding: 1rem 1.5rem;
+  margin-bottom: 0;
+}
+
+.project-status-section .section-header h2 {
+  color: white !important;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.project-status-section .section-header .period-selector select,
+.project-status-section .range-select {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+}
+
+.project-status-section .chart-container {
+  padding: 1.5rem;
+  background-color: white;
+  margin-top: 0;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.25rem;
-  padding: 1.2rem;
-  border-bottom: 1px solid #e5e7eb;
-  background-color: #3A7D44;
-  color: white;
-  margin: -1.5rem -1.5rem 1.25rem -1.5rem;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .section-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: white;
+  font-size: 1rem;
+  font-weight: 500;
   margin: 0;
+  flex: 0 0 auto;
 }
 
-.period-selector {
+.filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex: 1;
+  justify-content: flex-start;
+  margin-right: auto;
+}
+
+.filter-select {
+  min-width: 100px;
+  max-width: 130px;
+  padding: 0.2rem 0.3rem;
+  height: 26px;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  background-color: white;
+  cursor: pointer;
+  flex: 1;
+  color: #333;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.3rem center;
+  background-size: 0.6em;
+  padding-right: 1.2rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.add-task-btn {
+  background-color: #fff;
+  color: #3A7D44;
+  border: 1px solid #3A7D44;
+  border-radius: 3px;
+  font-size: 0.7rem !important;
+  font-weight: 500;
+  padding: 0.2rem 0.4rem;
+  height: 26px;
   display: flex;
   align-items: center;
+  white-space: nowrap;
+  margin-left: auto;
 }
 
-.range-select {
-  padding: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  background-color: #ffffff;
-  font-size: 0.9rem;
-  color: rgb(0, 0, 0);
+.all-tasks-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  background-color: #3A7D44;
+  padding: 0.5rem 1rem;
+  color: white;
+  overflow: hidden;
+  border-radius: 0;
+  margin: 0;
+  width: 100%;
+  padding-right: 0 !important;
+  position: relative;
+}
+
+.all-tasks-title {
+  margin-right: auto;
+}
+
+.filter-clear-btn {
+  padding: 0.2rem 0.4rem;
+  height: 26px;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  font-size: 0.7rem !important;
+  background-color: #f5f5f7;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.range-select:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.range-select:focus {
-  outline: none;
-  border-color: white;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filter-group {
+    width: 100%;
+    justify-content: flex-start;
+    margin-bottom: 0.5rem;
+  }
+  
+  .filter-select {
+    min-width: 80px;
+    font-size: 0.65rem !important;
+  }
+  
+  .add-task-btn {
+    margin-left: 0;
+    font-size: 0.65rem !important;
+  }
 }
 
 .status-metrics {
@@ -217,8 +329,12 @@ body {
 .task-section {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 0;
+  margin-bottom: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .task-filters {
@@ -265,15 +381,12 @@ body {
   justify-content: center;
   padding: 0.5rem 1rem;
   width: auto;
-  min-width: 90px;
-  background-color: #ffffff;
-  color: rgb(0, 0, 0);
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  background-color: white;
+  color: #3A7D44;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  height: 30px;
 }
 
 .add-task-btn::before {
@@ -732,30 +845,41 @@ select.filter-input {
   color: #8e8e93;
 }
 
-@media (max-width: 1366px) {
-  .dashboard-main {
-    grid-template-columns: 1fr 280px;
-  }
-
-  .activity-log-panel {
-    width: 280px;
-  }
-
+@media (max-width: 1600px) {
   .dashboard-metrics {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1366px) {
+  .dashboard-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-main {
+    grid-template-columns: 1fr 300px;
+    gap: 1rem;
+  }
+
+  .activity-log-panel {
+    width: 300px;
+    min-width: 300px;
+  }
+}
+
+@media (max-width: 1200px) {
   .dashboard-main {
     grid-template-columns: 1fr;
   }
 
   .activity-log-panel {
     width: 100%;
-    height: 500px;
+    min-width: 100%;
+    height: auto;
+    min-height: 400px;
     position: static;
+    margin-top: 1rem;
   }
 
   .dashboard-metrics {
@@ -764,34 +888,23 @@ select.filter-input {
 }
 
 @media (max-width: 768px) {
+  .admin-dashboard {
+    width: 100%;
+    margin-left: 0;
+    padding: 1rem;
+    margin-bottom: 60px;
+  }
+
   .dashboard-metrics {
     grid-template-columns: 1fr;
   }
-  
-  .admin-dashboard {
+
+  .metric-card {
     padding: 1rem;
   }
-  
-  .admin-dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .dashboard-columns {
-    grid-template-columns: 1fr;
-  }
-  
-  .filter-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .metric-card {
-    padding: 0.75rem;
-  }
-  
-  .metric-value {
-    font-size: 1.5rem;
+
+  .activity-log-panel {
+    min-height: 350px;
   }
 }
 
@@ -799,10 +912,12 @@ select.filter-input {
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 350px;
   min-width: 350px;
   height: calc(100vh - 100px);
   position: sticky;
   top: 1.5rem;
+  overflow: hidden;
 }
 
 .activity-log-panel h2 {
@@ -996,7 +1111,13 @@ select.filter-input {
   font-size: 1.5rem;
   color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .task-modal-close:hover {
@@ -1069,7 +1190,6 @@ select.filter-input {
   color: white;
 }
 
-/* Add pagination styles */
 .pagination-controls {
   display: flex;
   justify-content: space-between;
@@ -1120,16 +1240,16 @@ select.filter-input {
 
 .filter-select {
   flex: 1;
+  font-size: 0.7rem !important; 
   min-width: 150px;
   padding: 0.5rem;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   background-color: white;
-  font-size: 0.9rem;
   color: #374151;
   cursor: pointer;
   transition: all 0.2s ease;
-  appearance: none;
+  appearance: none ;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
@@ -1213,7 +1333,6 @@ input[type="date"].filter-select {
   font-weight: 500;
 }
 
-/* Add tooltip styles */
 .sort-tooltip {
   position: relative;
   display: inline-block;
@@ -1234,13 +1353,11 @@ input[type="date"].filter-select {
   z-index: 1000;
 }
 
-/* Add icons for visual clarity */
 .sort-icon {
   margin-left: 4px;
   font-size: 0.8rem;
 }
 
-/* Optional: Add a subtle scrollbar style for the task list */
 .task-list::-webkit-scrollbar {
   width: 8px;
 }
@@ -1285,4 +1402,549 @@ input[type="date"].filter-select {
 .log-badge.notification {
   background: #fff3e0;
   color: #e65100;
-} 
+}
+
+.all-tasks-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  background-color: #3A7D44;
+  padding: 0.5rem 1rem;
+  color: white;
+  overflow: hidden;
+  border-radius: 0;
+  margin: 0;
+}
+
+.all-tasks-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  align-items: center;
+  width: auto;
+  max-width: calc(100% - 80px);
+  overflow: visible;
+}
+
+.filter-select, 
+select[aria-label*="filter"],
+select[aria-label*="days"] {
+  min-width: 120px;
+  max-width: 150px;
+  padding: 0.25rem 0.5rem;
+  height: 30px;
+  background-color: white !important;
+  color: #333 !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 4px !important;
+  font-size: 0.8rem;
+  margin: 0 0.25rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  flex: 0 0 auto !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  background-size: 0.75em !important;
+  padding-right: 1.8rem !important;
+}
+
+.filter-select:last-child,
+select[aria-label*="filter"]:last-child,
+select[aria-label*="days"]:last-child {
+  margin-right: 0 !important;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  gap: 0.5rem;
+}
+
+.add-task-button {
+  background-color: #fff;
+  color: #3A7D44;
+  border: 1px solid #3A7D44;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.2rem 0.4rem;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.add-task-button:hover {
+  background-color: #f0f9f1;
+}
+
+.add-task-button::before {
+  content: "+";
+  margin-right: 3px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .filter-controls {
+    gap: 0.2rem;
+  }
+  
+  .filter-select {
+    min-width: 60px;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.2rem;
+    background-position: right 0.2rem center;
+    padding-right: 1rem;
+  }
+  
+  .add-task-button {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.3rem;
+  }
+  
+  .add-task-button::before {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .all-tasks-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 0.3rem 0.4rem;
+  }
+  
+  .filter-controls {
+    flex-wrap: wrap;
+  }
+  
+  .filter-select {
+    flex-basis: calc(50% - 0.15rem);
+    min-width: 0;
+  }
+  
+  .add-task-button {
+    margin-top: 0.2rem;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .status-badge {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}
+
+.priority-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .priority-badge {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}
+
+.due-date-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .due-date-badge {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}
+
+.activity-graph-header {
+  background-color: white;
+  color: #1d1d1f;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.activity-graph-container h2,
+.activity-graph-container .section-title,
+.activity-graph-container > div:first-child {
+  background-color: white;
+  color: #1d1d1f;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.all-tasks-header,
+.task-section .section-header,
+.task-section h2 {
+  background-color: #3A7D44 !important;
+  color: white !important;
+  border-radius: 0;
+  padding: 1rem 1.5rem;
+  margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.all-tasks-title,
+.task-section .section-header h2 {
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.section-header,
+.section-title,
+.dashboard-section-title {
+  background-color: white;
+  color: #1d1d1f;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.activity-title {
+  background-color: white;
+  color: #1d1d1f;
+  border-radius: 6px 6px 0 0;
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-section .section-header,
+.activity-graph .section-header,
+.dashboard-panel .panel-header {
+  background-color: white !important;
+  color: #1d1d1f !important;
+}
+
+.time-range-select {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  color: #333;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  height: 26px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.3rem center;
+  background-size: 0.6em;
+  padding-right: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .activity-graph-header,
+  .all-tasks-header,
+  .section-header {
+    padding: 0.4rem 0.75rem;
+  }
+  
+  .all-tasks-title,
+  .section-title {
+    font-size: 0.8rem;
+  }
+  
+  .time-range-select {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+  }
+}
+
+select,
+.filter-select,
+.time-range-select,
+[class*="filter"],
+[class*="range"],
+.admin-dashboard select {
+  background-color: var(--bg-light) !important;
+  color: var(--text-dark) !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: var(--radius-sm) !important;
+  appearance: none !important;
+  padding: 0.25rem 0.5rem;
+  height: 30px;
+  font-size: 0.8rem;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  background-size: 0.75em !important;
+  padding-right: 1.8rem !important;
+}
+
+.date-filter select,
+.time-filter select,
+.date-range select,
+select[name="dateRange"],
+select[name="timeRange"],
+select[id*="date"],
+select[id*="time"],
+select[id*="range"],
+select[aria-label*="filter"],
+select[aria-label*="range"],
+select[aria-label*="days"] {
+  background-color: white !important;
+  color: #333 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.range-select {
+  background-color: white !important;
+  color: #333 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 3px !important;
+  font-size: 0.75rem;
+  height: 26px;
+  padding: 0.2rem 0.5rem;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.3rem center !important;
+  background-size: 0.6em !important;
+  padding-right: 1.2rem !important;
+}
+
+.task-section {
+  background: white;
+  border-radius: 12px;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.all-tasks-header,
+.task-section .section-header {
+  background-color: #3A7D44 !important;
+  color: white !important;
+  border-radius: 0;
+  padding: 1rem 1.5rem;
+  margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.all-tasks-title,
+.task-section .section-header h2 {
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.task-section .filter-select,
+.task-section .range-select,
+.all-tasks-header .filter-select {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+}
+
+.task-section .task-list {
+  padding: 1.5rem;
+  background-color: white;
+  margin-top: 0;
+}
+
+.all-tasks-header {
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.add-task-btn, 
+.add-task-button {
+  background-color: white !important;
+  color: #3A7D44 !important;
+  border: 1px solid white !important;
+  font-weight: 600 !important;
+}
+
+.add-task-btn:hover, 
+.add-task-button:hover {
+  background-color: #f0f9f1 !important;
+  border-color: #f0f9f1 !important;
+}
+
+.all-tasks-header select,
+.task-section .section-header select,
+select[aria-label*="filter"],
+.all-tasks-header .filter-select,
+.all-tasks-header select[class*="filter"],
+.all-tasks-header select[class*="range"],
+.all-tasks-header select[id*="filter"] {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #333 !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  font-weight: 500 !important;
+}
+
+.all-tasks-header select, 
+.all-tasks-header select option {
+  color: #333 !important;
+  background-color: white !important;
+}
+
+.add-task-btn, 
+.add-task-button {
+  background-color: white !important;
+  color: #3A7D44 !important;
+  border: 1px solid white !important;
+  font-weight: 600 !important;
+}
+
+.add-task-btn:hover, 
+.add-task-button:hover {
+  background-color: #f0f9f1 !important;
+  border-color: #f0f9f1 !important;
+}
+
+.task-section .filter-group,
+.all-tasks-header .filter-group {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+.filter-select, 
+.task-section .filter-select,
+.all-tasks-header .filter-select,
+.section-header .filter-select {
+  min-width: 120px;
+  max-width: 130px;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #333 !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 4px !important;
+  font-size: 0.8rem;
+  height: 30px;
+  padding: 0.25rem 0.5rem;
+  margin: 0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  flex: 0 0 auto !important;
+}
+
+.filter-controls,
+.filter-wrapper {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-select:hover {
+  background-color: white !important;
+  border-color: white !important;
+}
+
+.task-section .section-header {
+  border: none !important;
+  background-color: #3A7D44 !important;
+}
+
+.all-tasks-header {
+  width: 100%;
+  padding-right: 0 !important;
+  overflow: hidden !important; 
+  position: relative;
+}
+
+.all-tasks-header select:last-child,
+.filter-controls > select:last-child,
+.filter-group > select:last-child,
+select[aria-label*="First"] {
+  background-image: none !important;
+}
+
+.all-tasks-header select:last-child,
+.filter-controls > select:last-child,
+.filter-group > select:last-child,
+select[aria-label*="First"] {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-position: right 0.5rem center !important;
+  background-size: 0.75em !important;
+  background-repeat: no-repeat !important;
+  padding-right: 1.8rem !important;
+  position: relative;
+}
+
+select[aria-label*="First"] {
+  max-width: 120px !important;
+  min-width: 120px !important;
+  width: 120px !important;
+  margin-right: 0 !important;
+}
+
+.filter-controls,
+.filter-group,
+.all-tasks-header > div {
+  background: transparent !important;
+  border: none !important;
+  background-image: none !important;
+  appearance: none !important;
+}
+
+.all-tasks-header::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background-color: #3A7D44;
+  z-index: 10;
+}
