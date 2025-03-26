@@ -14,26 +14,36 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     AssignedBy: '', 
     StartDate: '',
     EndDate: '',
-    subtask: []
+    subtask: [],
+    Client: ''
   });
   const [engineers, setEngineers] = useState([]);
+  const [clients, setClients] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (isOpen) {
       fetchEngineers();
+      fetchClients();
       getCurrentUser();
     }
   }, [isOpen]);
 
   const getCurrentUser = () => {
     const userData = JSON.parse(localStorage.getItem('user'));
-    if (userData && userData.email) {
+    if (userData) {
       setCurrentUser(userData);
+      const fullName = userData.middlename 
+        ? `${userData.firstname} ${userData.middlename} ${userData.lastname}`
+        : `${userData.firstname} ${userData.lastname}`;
+        
       setTaskData(prev => ({
         ...prev,
-        AssignedBy: userData.email
+        AssignedTo: userData.email,
+        AssignedToName: fullName,
+        AssignedBy: userData.email,
+        AssignedByName: fullName
       }));
     }
   };
@@ -41,9 +51,25 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const fetchEngineers = async () => {
     try {
       const response = await axios.get('/api/users?role=engineer');
-      setEngineers(response.data);
+      const formattedEngineers = response.data.map(engineer => ({
+        ...engineer,
+        fullName: `${engineer.firstname} ${engineer.lastname}`
+      }));
+      setEngineers(formattedEngineers);
     } catch (error) {
       console.error('Error fetching engineers:', error);
+    }
+  };
+  const fetchClients = async () => {
+    try {
+      const response = await axios.get('/api/users?role=client');
+      const formattedClients = response.data.map(client => ({
+        ...client,
+        fullName: `${client.firstname} ${client.lastname}`
+      }));
+      setClients(formattedClients);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
     }
   };
 
@@ -53,6 +79,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     if (!taskData.Description) newErrors.Description = "Description is required";
     if (!taskData.Location) newErrors.Location = "Location is required";
     if (!taskData.AssignedTo) newErrors.AssignedTo = "Assignee is required";
+    if (!taskData.Client) newErrors.Client = "Client is required";
     if (!taskData.AssignedBy) newErrors.AssignedBy = "Assigner is required";
     if (!taskData.StartDate) newErrors.StartDate = "Start date is required";
     if (!taskData.EndDate) newErrors.EndDate = "End date is required";
@@ -69,7 +96,20 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     if (Object.keys(validationErrors).length === 0) {
       setIsSubmitting(true);
       try {
-        const response = await axios.post('/api/tasks', taskData);
+        const selectedEngineer = engineers.find(eng => eng.email === taskData.AssignedTo);
+        const selectedClient = clients.find(client => client.email === taskData.Client);
+
+        const taskDataToSubmit = {
+          ...taskData,
+          AssignedTo: taskData.AssignedTo,
+          AssignedToName: selectedEngineer?.fullName || taskData.AssignedTo,
+          AssignedBy: currentUser.email,
+          AssignedByName: currentUser.fullName,
+          Client: taskData.Client,
+          ClientName: selectedClient?.fullName || taskData.Client
+        };
+        
+        const response = await axios.post('/api/tasks', taskDataToSubmit);
         onTaskCreated(response.data);
         onClose();
         setTaskData({
@@ -82,6 +122,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           AssignedBy: '',
           StartDate: '',
           EndDate: '',
+          Client: '',
           subtask: []
         });
       } catch (error) {
@@ -164,8 +205,8 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                 <option value="">Select an engineer</option>
                 {engineers.length > 0 ? (
                   engineers.map(engineer => (
-                    <option key={engineer._id} value={engineer.firstname && engineer.lastname}>
-                      {engineer.firstname} {engineer.lastname}
+                    <option key={engineer._id} value={engineer.email}>
+                      {engineer.fullName}
                     </option>
                   ))
                 ) : (
@@ -179,14 +220,24 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           <div className="admin-task-form-row">
             <div className="admin-task-form-group">
               <label className="admin-task-form-label">Client</label>
-              <input
-                type="text"
-                className={`admin-task-form-input ${errors.Client ? 'error' : ''}`}
+              <select
+                className={`admin-task-form-select ${errors.Client ? 'error' : ''}`}
                 value={taskData.Client}
                 onChange={(e) => setTaskData({ ...taskData, Client: e.target.value })}
-                placeholder="Enter client name"
-              />
+              >
+                <option value="">Select a client</option>
+                {clients.length > 0 ? (
+                  clients.map(client => (
+                    <option key={client._id} value={client.email}>
+                      {client.fullName}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No clients available</option>
+                )}
+              </select>
               {errors.Client && <span className="admin-task-error-message">{errors.Client}</span>}
+              {clients.length === 0 && <span className="admin-task-error-message">No clients found</span>}
             </div>
             
             <div className="admin-task-form-group">
@@ -196,7 +247,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                 className={`admin-task-form-input ${errors.AssignedBy ? 'error' : ''}`}
                 value={taskData.AssignedBy}
                 onChange={(e) => setTaskData({ ...taskData, AssignedBy: e.target.value })}
-                placeholder="Enter assigner's email"
                 readOnly 
               />
             </div>

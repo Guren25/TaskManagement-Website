@@ -50,6 +50,9 @@
   justify-content: center;
   width: 24px;
   height: 24px;
+  line-height: 0;
+  text-align: center;
+  margin-left: auto;
 }
 
 .admin-task-modal-close:hover {

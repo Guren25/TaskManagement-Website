@@ -39,7 +39,7 @@ const sendTaskAssignmentEmail = async (recipientEmail, taskDetails) => {
                 <p><strong>Priority:</strong> ${taskDetails.Priority}</p>
                 <p><strong>Start Date:</strong> ${new Date(taskDetails.StartDate).toLocaleDateString()}</p>
                 <p><strong>End Date:</strong> ${new Date(taskDetails.EndDate).toLocaleDateString()}</p>
-                <p><strong>Assigned By:</strong> ${taskDetails.AssignedBy}</p>
+                <p><strong>Assigned By:</strong> ${taskDetails.AssignedByName || taskDetails.AssignedBy}</p>
                 <br>
                 <p>Please log in to the system to view more details and start working on your task.</p>
             `

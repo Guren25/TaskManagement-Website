@@ -71,7 +71,7 @@ const TaskCard = ({ task, onTaskClick }) => {
               <span className="task-date">
                 <span className="date-label">End:</span> {formatDate(task.EndDate)}
               </span>
-              <span className="task-assignee">Assigned to: {task.AssignedTo}</span>
+              <span className="task-assignee">Assigned to: {task.AssignedToName || task.AssignedTo}</span>
               <span className="task-client">Client: {task.Client}</span>
               {task.subtask && task.subtask.length > 0 && (
                 <span>Subtasks: {task.subtask.length}</span>
@@ -271,12 +271,36 @@ const AdminDashboard = () => {
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('/api/tasks');
-      console.log('Fetched tasks:', response.data);
-      setTasks(response.data);
-      setFilteredTasks(response.data);
-      const calculatedMetrics = calculateMetrics(response.data);
+      const [tasksResponse, usersResponse] = await Promise.all([
+        axios.get('/api/tasks'),
+        axios.get('/api/users')
+      ]);
+
+      const userMap = {};
+      usersResponse.data.forEach(user => {
+        userMap[user.email] = `${user.firstname} ${user.lastname}`;
+      });
+      const mappedTasks = tasksResponse.data.map(task => ({
+        ...task,
+        AssignedTo: userMap[task.AssignedTo] || task.AssignedTo,
+        AssignedBy: userMap[task.AssignedBy] || task.AssignedBy,
+        Client: userMap[task.Client] || task.Client,
+        subtask: task.subtask?.map(sub => ({
+          ...sub,
+          AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
+          AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
+        }))
+      }));
+
+      console.log('Fetched tasks:', mappedTasks);
+      setTasks(mappedTasks);
+      setFilteredTasks(mappedTasks);
+      const calculatedMetrics = calculateMetrics(mappedTasks);
       setMetrics(calculatedMetrics);
+
+      const assignees = [...new Set(mappedTasks.map(task => task.AssignedTo))].filter(Boolean);
+      setUniqueAssignees(assignees);
+
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
@@ -296,7 +320,7 @@ const AdminDashboard = () => {
   const handleFilterChange = (filterType, value) => {
     const newFilters = { ...filters, [filterType]: value };
     setFilters(newFilters);
-    let filtered = [...tasks]; // Start with all tasks
+    let filtered = [...tasks];
 
     if (newFilters.status) {
       filtered = filtered.filter(task => task.Status === newFilters.status);
@@ -512,10 +536,21 @@ const AdminDashboard = () => {
   };
 
   const handleTaskCreated = (newTask) => {
+    // If the task comes with email, we need to convert it to full name
+    const taskWithNames = {
+      ...newTask,
+      AssignedTo: newTask.AssignedTo, // This should already be the full name from TaskModal
+      AssignedBy: `${currentUser.firstname} ${currentUser.lastname}`,
+      subtask: newTask.subtask?.map(sub => ({
+        ...sub,
+        AssignedTo: sub.AssignedTo // Make sure subtask AssignedTo is also using full name
+      }))
+    };
+
     setTasks(prevTasks => {
-      const updatedTasks = [...prevTasks, newTask];
-      setFilteredTasks(updatedTasks); // Update filtered tasks as well
-      setMetrics(calculateMetrics(updatedTasks)); // Recalculate metrics
+      const updatedTasks = [...prevTasks, taskWithNames];
+      setFilteredTasks(updatedTasks);
+      setMetrics(calculateMetrics(updatedTasks));
       return updatedTasks;
     });
     
@@ -523,9 +558,9 @@ const AdminDashboard = () => {
       _id: `task-created-${newTask._id}`,
       type: 'task-created',
       taskName: newTask.TaskName,
-      user: newTask.AssignedBy,
+      user: taskWithNames.AssignedBy,
       timestamp: new Date().toISOString(),
-      message: `Task "${newTask.TaskName}" created by ${newTask.AssignedBy}`
+      message: `Task "${newTask.TaskName}" created by ${taskWithNames.AssignedBy}`
     };
     
     const subtaskLogs = newTask.subtask && newTask.subtask.length > 0 ? 
@@ -534,9 +569,9 @@ const AdminDashboard = () => {
         type: 'subtask-added',
         taskName: newTask.TaskName,
         subtaskName: subtask.TaskName,
-        user: newTask.AssignedBy,
+        user: taskWithNames.AssignedBy,
         timestamp: new Date().toISOString(),
-        message: `Subtask "${subtask.TaskName}" added to "${newTask.TaskName}" by ${newTask.AssignedBy}`
+        message: `Subtask "${subtask.TaskName}" added to "${newTask.TaskName}" by ${taskWithNames.AssignedBy}`
       })) : [];
     
     setActivityLog([newLog, ...subtaskLogs, ...activityLog]);
@@ -751,7 +786,9 @@ const AdminDashboard = () => {
                   >
                     <option value="">Assigned To: All</option>
                     {uniqueAssignees.map(assignee => (
-                      <option key={assignee} value={assignee}>{assignee}</option>
+                      <option key={assignee} value={assignee}>
+                        {assignee}
+                      </option>
                     ))}
                   </select>
 
@@ -840,7 +877,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="task-detail-row">
                     <span className="detail-label">Assigned To:</span>
-                    <span className="detail-value">{selectedTask.AssignedTo}</span>
+                    <span className="detail-value">{selectedTask.AssignedToName || selectedTask.AssignedTo}</span>
                   </div>
                   <div className="task-detail-row">
                     <span className="detail-label">Start Date:</span>
@@ -901,7 +938,7 @@ const AdminDashboard = () => {
                           </div>
                           <div className="subtask-detail">
                             <span className="detail-label">Assigned To:</span>
-                            <span className="detail-value">{subtask.AssignedTo}</span>
+                            <span className="detail-value">{subtask.AssignedToName || subtask.AssignedTo}</span>
                           </div>
                         </div>
                       ))}
