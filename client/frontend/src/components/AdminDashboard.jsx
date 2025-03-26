@@ -213,6 +213,10 @@ const AdminDashboard = () => {
   const [uniqueLocations, setUniqueLocations] = useState([]);
   const [uniqueAssignees, setUniqueAssignees] = useState([]);
   const [sortOrder, setSortOrder] = useState('desc');
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
 
   useEffect(() => {
     fetchTasks().then(() => fetchActivityLog());
@@ -245,6 +249,34 @@ const AdminDashboard = () => {
       setFilteredTasks(sorted);
     }
   }, [tasks, sortOrder]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      // Force layout recalculation
+      document.body.style.display = 'none';
+      document.body.offsetHeight; // Force reflow
+      document.body.style.display = '';
+      
+      // Update window dimensions state
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    // Add event listeners
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    // Initial call
+    handleResize();
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -395,6 +427,10 @@ const AdminDashboard = () => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    resizeDelay: 100,
+    onResize: function(chart, size) {
+      chart.resize();
+    },
     plugins: {
       legend: {
         position: 'top',

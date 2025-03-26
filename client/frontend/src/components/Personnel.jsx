@@ -132,34 +132,34 @@ const Personnel = () => {
                     </div>
                 </div>
 
-                <div className="personnel-container">
-                    <div className="personnel-content-wrapper">
-                        <div className="filter-controls-row">
-                            <select 
-                                className="personnel-select"
-                                value={filters.role}
-                                onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-                            >
-                                <option value="">All Roles</option>
-                                <option value="client">Client</option>
-                                <option value="engineer">Engineer</option>
-                                <option value="manager">Manager</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                            
-                            <button 
-                                className="add-personnel-btn" 
-                                onClick={() => {
-                                    resetForm();
-                                    setEditingUser(null);
-                                    setIsModalOpen(true);
-                                }}
-                            >
-                                Add Personnel
-                            </button>
-                        </div>
+                <div>
+                    <div className="personnel-controls">
+                        <select 
+                            className="personnel-select"
+                            value={filters.role}
+                            onChange={(e) => setFilters({ ...filters, role: e.target.value })}
+                        >
+                            <option value="">All Roles</option>
+                            <option value="client">Client</option>
+                            <option value="engineer">Engineer</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        
+                        <button 
+                            className="add-personnel-btn" 
+                            onClick={() => {
+                                resetForm();
+                                setEditingUser(null);
+                                setIsModalOpen(true);
+                            }}
+                        >
+                            Add Personnel
+                        </button>
+                    </div>
 
-                        <div className="personnel-table">
+                    <div className="personnel-container">
+                        <div className="table-container">
                             <table className="data-table">
                                 <thead>
                                     <tr>

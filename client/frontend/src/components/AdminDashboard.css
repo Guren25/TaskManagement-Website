@@ -39,26 +39,36 @@
 
 body {
   background-color: #E8F5E9 !important; 
+  overflow-x: hidden;
+  width: 100vw;
+  max-width: 100vw;
 }
 
 .admin-layout {
   display: flex;
   min-height: 100vh;
   background-color: #E8F5E9;
-  width: 100%;
+  width: 100vw;
+  max-width: 100vw;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 .admin-dashboard {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  width: calc(100% - 72px);
-  max-width: 1800px;
+  width: calc(100vw - 72px);
+  max-width: calc(100vw - 72px);
   margin-left: 72px;
   padding: 1.5rem;
   background-color: #E8F5E9;
   min-height: 100vh;
   color: #1d1d1f;
+  height: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .app-container {
@@ -71,16 +81,17 @@ body {
 #root {
   background-color: #E8F5E9;
   min-height: 100vh;
-  width: 100%;
+  width: 100vw;
+  max-width: 100vw;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 .admin-dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
 }
 
 .welcome-text {
@@ -154,9 +165,11 @@ body {
 
 .dashboard-main {
   display: grid;
-  grid-template-columns: 1fr 350px;
+  grid-template-columns: minmax(0, 1fr) 350px;
   gap: 1.5rem;
   margin-top: 1.5rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .project-status-section {
@@ -251,19 +264,18 @@ body {
   overflow: hidden;
 }
 
-.add-task-btn {
-  background-color: #fff;
-  color: #3A7D44;
-  border: 1px solid #3A7D44;
-  border-radius: 3px;
-  font-size: 0.7rem !important;
-  font-weight: 500;
-  padding: 0.2rem 0.4rem;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  margin-left: auto;
+.add-task-btn, 
+.add-task-button {
+  background-color: white !important;
+  color: #3A7D44 !important;
+  border: 1px solid white !important;
+  font-weight: 600 !important;
+}
+
+.add-task-btn:hover, 
+.add-task-button:hover {
+  background-color: #f0f9f1 !important;
+  border-color: #f0f9f1 !important;
 }
 
 .all-tasks-header {
@@ -470,6 +482,9 @@ body {
 .chart-container {
   position: relative;
   height: 250px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
   margin-top: 1rem;
   padding: 1rem 0.5rem;
 }
@@ -843,13 +858,6 @@ select.filter-input {
   padding: 2rem;
   text-align: center;
   color: #8e8e93;
-}
-
-@media (max-width: 1600px) {
-  .dashboard-metrics {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-  }
 }
 
 @media (max-width: 1366px) {
@@ -1947,4 +1955,20 @@ select[aria-label*="First"] {
   width: 5px;
   background-color: #3A7D44;
   z-index: 10;
+}
+
+@media (max-width: 100%) {
+  .admin-dashboard {
+    width: 100%;
+    margin-left: 72px;
+    padding: 1rem;
+  }
+}
+
+/* Force recalculation of layout on window resize */
+@media (min-width: 0px) {
+  .admin-dashboard {
+    width: calc(100vw - 72px);
+    max-width: calc(100vw - 72px);
+  }
 }
