@@ -147,10 +147,10 @@ const LogEntry = ({ log }) => {
   // Handle system notification logs
   if (log.newValue?.type === 'due_date_notification') {
     return (
-      <div className="log-entry">
+      <div className="log-entry reminder">
         <div className="log-title">
           <span className="task-name">{log.newValue.message}</span>
-          <span className="log-badge notification">Reminder</span>
+          <span className="log-badge reminder">Reminder</span>
         </div>
         <div className="log-footer">
           <span className="log-user">System</span>
