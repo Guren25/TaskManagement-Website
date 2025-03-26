@@ -270,6 +270,7 @@ body {
   color: #3A7D44 !important;
   border: 1px solid white !important;
   font-weight: 600 !important;
+  font-size: 12px !important;
 }
 
 .add-task-btn:hover, 
@@ -280,40 +281,35 @@ body {
 
 .all-tasks-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background-color: #3A7D44;
-  padding: 1rem 1.5rem;
-  color: white;
-  overflow: visible;
+  background-color: #3A7D44 !important;
+  padding: 1rem 1.5rem !important;
   border-radius: 12px 12px 0 0;
-  margin: 0;
   width: 100%;
 }
 
-.filter-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: nowrap;
-  margin-left: auto;
+.all-tasks-title {
+  color: white !important;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-right: auto;
 }
 
-.filter-select, 
-select[aria-label*="filter"],
-select[aria-label*="days"] {
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-select {
   min-width: 120px;
-  max-width: 150px;
-  padding: 0.25rem 0.5rem;
-  height: 30px;
-  background-color: rgba(255, 255, 255, 0.95) !important;
+  height: 32px;
+  background-color: white !important;
   color: #333 !important;
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
   border-radius: 4px !important;
   font-size: 0.8rem;
-  margin: 0 !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  flex: 0 0 auto !important;
+  padding: 0.25rem 0.75rem;
 }
 
 .add-task-button {
@@ -321,12 +317,10 @@ select[aria-label*="days"] {
   color: #3A7D44 !important;
   border: none !important;
   border-radius: 4px;
-  font-size: 0.8rem;
+  height: 32px;
+  padding: 0 1rem;
   font-weight: 500;
-  padding: 0.25rem 1rem !important;
-  height: 30px !important;
-  display: flex;
-  align-items: center;
+  margin-left: 0.5rem;
   white-space: nowrap;
 }
 
@@ -1450,167 +1444,15 @@ input[type="date"].filter-select {
   color: #e65100;
 }
 
-.all-tasks-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #3A7D44;
-  padding: 1rem 1.5rem;
-  color: white;
-  overflow: visible;
-  border-radius: 12px 12px 0 0;
-  margin: 0;
-  width: 100%;
-}
-
-.filter-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: nowrap;
-  margin-left: auto;
-}
-
-.filter-select, 
-select[aria-label*="filter"],
-select[aria-label*="days"] {
-  min-width: 120px;
-  max-width: 150px;
-  padding: 0.25rem 0.5rem;
-  height: 30px;
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  color: #333 !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  border-radius: 4px !important;
-  font-size: 0.8rem;
-  margin: 0 !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  flex: 0 0 auto !important;
-}
-
-.add-task-button {
-  background-color: white !important;
-  color: #3A7D44 !important;
-  border: none !important;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  padding: 0.25rem 1rem !important;
-  height: 30px !important;
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .all-tasks-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 1rem;
-  }
-
-  .filter-controls {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .filter-select {
-    flex: 1 1 calc(50% - 0.25rem) !important;
-    min-width: 0;
-  }
-
-  .add-task-button {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-.status-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-@media (max-width: 768px) {
-  .status-badge {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.7rem;
-  }
-}
-
-.priority-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-@media (max-width: 768px) {
-  .priority-badge {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.7rem;
-  }
-}
-
-.due-date-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-@media (max-width: 768px) {
-  .due-date-badge {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.7rem;
-  }
-}
-
-.activity-graph-header {
-  background-color: white;
-  color: #1d1d1f;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.activity-graph-container h2,
-.activity-graph-container .section-title,
-.activity-graph-container > div:first-child {
-  background-color: white;
-  color: #1d1d1f;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.all-tasks-header,
-.task-section .section-header,
-.task-section h2 {
-  background-color: #3A7D44 !important;
-  color: white !important;
-  border-radius: 0;
-  padding: 1rem 1.5rem;
-  margin-bottom: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .all-tasks-title,
 .task-section .section-header h2 {
   color: white !important;
-  font-size: 0.9rem;
+  font-size: 1.1rem !important;
   font-weight: 500;
   margin: 0;
+  text-align: left !important;
+  padding-left: 0.5rem !important;
+  flex: 1;
 }
 
 .section-header,
@@ -1756,6 +1598,7 @@ select[aria-label*="days"] {
   font-size: 0.9rem;
   font-weight: 500;
   margin: 0;
+  text-align: left !important;
 }
 
 .task-section .filter-select,
@@ -1938,11 +1781,40 @@ select[aria-label*="First"] {
     padding: 1rem;
   }
 }
-
-/* Force recalculation of layout on window resize */
 @media (min-width: 0px) {
   .admin-dashboard {
     width: calc(100vw - 72px);
     max-width: calc(100vw - 72px);
   }
+}
+select[aria-label*="days"],
+.range-select {
+  background-color: white !important;
+  color: #3A7D44 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 4px !important;
+  font-size: 0.8rem;
+  height: 30px;
+  padding: 0.25rem 0.5rem;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233A7D44' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  background-size: 0.75em !important;
+  padding-right: 1.8rem !important;
+  appearance: none !important;
+}
+.project-status-section .range-select option,
+.project-status-section select[aria-label*="days"] option,
+select[aria-label*="days"] option {
+  background-color: white !important;
+  color: #3A7D44 !important;
+}
+.project-status-section .range-select:hover,
+.project-status-section .range-select:focus,
+.project-status-section select[aria-label*="days"]:hover,
+.project-status-section select[aria-label*="days"]:focus,
+select[aria-label*="days"]:hover,
+select[aria-label*="days"]:focus {
+  background-color: white !important;
+  color: #3A7D44 !important;
 }

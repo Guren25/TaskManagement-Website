@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
-import AdminDashboard from './components/AdminDashboard';
+import AdminDashboard from './components/dashboards/AdminDashboard';
 import Personnel from './components/Personnel';
 import './App.css';
 const ProtectedRoute = ({ children }) => {

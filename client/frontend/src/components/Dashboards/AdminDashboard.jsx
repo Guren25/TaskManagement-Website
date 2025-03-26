@@ -12,10 +12,10 @@ import {
   Filler
 } from 'chart.js';
 import axios from 'axios';
-import TaskModal from './TaskModal';
+import TaskModal from '../TaskModal';
 import './AdminDashboard.css';
 import { format } from 'date-fns';
-import SideNav from './SideNav';
+import SideNav from '../SideNav';
 
 ChartJS.register(
   CategoryScale,
@@ -144,7 +144,7 @@ const LogEntry = ({ log }) => {
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
-  // Handle system notification logs
+
   if (log.newValue?.type === 'due_date_notification') {
     return (
       <div className="log-entry reminder">
@@ -160,7 +160,6 @@ const LogEntry = ({ log }) => {
     );
   }
 
-  // Handle regular task change logs
   return (
     <div className="log-entry">
       <div className="log-title">
@@ -252,26 +251,17 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      // Force layout recalculation
       document.body.style.display = 'none';
-      document.body.offsetHeight; // Force reflow
+      document.body.offsetHeight; 
       document.body.style.display = '';
-      
-      // Update window dimensions state
       setWindowSize({
         width: window.innerWidth,
         height: window.innerHeight
       });
     };
-
-    // Add event listeners
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
-    
-    // Initial call
     handleResize();
-    
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
@@ -283,12 +273,8 @@ const AdminDashboard = () => {
     try {
       const response = await axios.get('/api/tasks');
       console.log('Fetched tasks:', response.data);
-      
-      // Set both tasks and filteredTasks
       setTasks(response.data);
       setFilteredTasks(response.data);
-      
-      // Calculate metrics
       const calculatedMetrics = calculateMetrics(response.data);
       setMetrics(calculatedMetrics);
     } catch (error) {
@@ -310,8 +296,6 @@ const AdminDashboard = () => {
   const handleFilterChange = (filterType, value) => {
     const newFilters = { ...filters, [filterType]: value };
     setFilters(newFilters);
-
-    // Filter the tasks based on all active filters
     let filtered = [...tasks]; // Start with all tasks
 
     if (newFilters.status) {
