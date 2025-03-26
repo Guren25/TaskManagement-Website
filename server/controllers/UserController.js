@@ -5,6 +5,7 @@ const emailService = require("../utils/emailService");
 const emailValidator = require("email-validator");
 const dns = require("dns");
 const { promisify } = require('util');
+const crypto = require('crypto');
 
 const validateEmail = async (email) => {
     try {
@@ -313,12 +314,8 @@ const userController = {
             if (!token) {
                 return res.status(400).json({ message: "Verification token is required" });
             }
-
-            // Verify the token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             console.log('Decoded token:', decoded);
-            
-            // Find and update the user
             const user = await User.findById(decoded.id);
             console.log('Found user:', user ? 'yes' : 'no');
             
@@ -329,8 +326,6 @@ const userController = {
             if (user.status === "verified") {
                 return res.status(400).json({ message: "Email already verified" });
             }
-
-            // Update user status to verified
             user.status = "verified";
             await user.save();
             console.log('User verified successfully');
@@ -353,7 +348,73 @@ const userController = {
             });
         }
     },
+    forgotPassword: async (req, res) => {
+        try {
+            const { email } = req.body;
+            const user = await User.findOne({ email });
+            
+            if (!user) {
+                return res.status(404).json({ message: 'No account found with this email.' });
+            }
 
+            // Generate reset token
+            const resetToken = crypto.randomBytes(32).toString('hex');
+            const resetTokenExpiry = Date.now() + 3600000; // Token expires in 1 hour
+
+            // Save hashed token to user
+            user.resetPasswordToken = crypto
+                .createHash('sha256')
+                .update(resetToken)
+                .digest('hex');
+            user.resetPasswordExpire = resetTokenExpiry;
+            await user.save();
+
+            // For testing purposes, log the token (remove in production)
+            console.log('Reset Token for testing:', resetToken);
+
+            try {
+                // Note the corrected function name here
+                await emailService.sendPasswordResetEmail(user, resetToken);
+                res.status(200).json({ message: 'Password reset email sent' });
+            } catch (emailError) {
+                console.error('Email sending error:', emailError);
+                res.status(500).json({ 
+                    message: 'Error sending password reset email',
+                    error: emailError.message 
+                });
+            }
+        } catch (error) {
+            console.error('Forgot password error:', error);
+            res.status(500).json({ 
+                message: 'Error sending password reset email',
+                error: error.message 
+            });
+        }
+    },
+    resetPassword: async (req, res) => {
+        try {
+            const { token } = req.params;
+            const { newPassword } = req.body;
+
+            const user = await User.findOne({
+                resetPasswordToken: token,
+                resetPasswordExpires: { $gt: Date.now() }
+            });
+
+            if (!user) {
+                return res.status(400).json({ message: "Invalid or expired reset token" });
+            }
+
+            user.password = await bcrypt.hash(newPassword, 10);
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            await user.save();
+
+            res.status(200).json({ message: "Password reset successful" });
+        } catch (error) {
+            res.status(500).json({ message: "Error resetting password", error: error.message });
+        }
+    },
     validateEmail,
 };
 

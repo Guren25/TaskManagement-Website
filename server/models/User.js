@@ -40,7 +40,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: ["verified", "unverified", "deactivated"]
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
 });
 
 const User = mongoose.model("User", userSchema);
