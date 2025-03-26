@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Personnel.css';
 import SideNav from './SideNav';
+import ConfirmationModal from './ConfirmationModal';
 
 const Personnel = () => {
     const [personnel, setPersonnel] = useState([]);
@@ -19,6 +20,10 @@ const Personnel = () => {
         status: 'active'
     });
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+    const [notification, setNotification] = useState({ show: false, message: '' });
+    const [formErrors, setFormErrors] = useState({});
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
 
     useEffect(() => {
         fetchPersonnel();
@@ -53,24 +58,21 @@ const Personnel = () => {
                     isTemporaryPassword: true
                 };
                 
-                console.log('Sending user data:', userData);
-                
                 await axios.post('/api/users/register', userData);
-                
-                alert(`User created successfully! Temporary password: ${tempPassword}\nUser will be prompted to change it on first login.`);
+                setIsModalOpen(false);
+                setEditingUser(null);
+                resetForm();
+                fetchPersonnel();
             }
-            setIsModalOpen(false);
-            setEditingUser(null);
-            resetForm();
-            fetchPersonnel();
         } catch (error) {
-            console.error('Error saving user:', error);
-            console.error('Full error details:', error.response?.data);
-            
-            if (error.response && error.response.data && error.response.data.message) {
-                alert(`Error: ${error.response.data.message}`);
+            if (error.response?.data?.message) {
+                if (error.response.data.message.includes('email')) {
+                    setFormErrors({ email: 'This email is already registered' });
+                } else {
+                    setFormErrors({ general: error.response.data.message });
+                }
             } else {
-                alert('An error occurred while saving the user. Please try again.');
+                setFormErrors({ general: 'An error occurred. Please try again.' });
             }
         }
     };
@@ -85,13 +87,17 @@ const Personnel = () => {
     };
 
     const handleDelete = async (userId) => {
-        if (window.confirm('Are you sure you want to delete this user?')) {
-            try {
-                await axios.delete(`/api/users/${userId}`);
-                fetchPersonnel();
-            } catch (error) {
-                console.error('Error deleting user:', error);
-            }
+        setUserToDelete(userId);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        try {
+            await axios.delete(`/api/users/${userToDelete}`);
+            fetchPersonnel();
+            setShowDeleteModal(false);
+        } catch (error) {
+            console.error('Error deleting user:', error);
         }
     };
 
@@ -120,6 +126,13 @@ const Personnel = () => {
             phone: '',
             status: 'active'
         });
+    };
+
+    const showNotification = (message) => {
+        setNotification({ show: true, message });
+        setTimeout(() => {
+            setNotification({ show: false, message: '' });
+        }, 3000);
     };
 
     return (
@@ -226,7 +239,7 @@ const Personnel = () => {
                                 <div className="form-group">
                                     <input
                                         type="text"
-                                        placeholder="Middle Name"
+                                        placeholder="Middle Name (Optional)"
                                         value={formData.middlename}
                                         onChange={(e) => setFormData({...formData, middlename: e.target.value})}
                                     />
@@ -245,9 +258,14 @@ const Personnel = () => {
                                         type="email"
                                         placeholder="Email"
                                         value={formData.email}
-                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        onChange={(e) => {
+                                            setFormData({...formData, email: e.target.value});
+                                            setFormErrors({...formErrors, email: ''});
+                                        }}
+                                        className={formErrors.email ? 'error' : ''}
                                         required
                                     />
+                                    {formErrors.email && <div className="form-error">{formErrors.email}</div>}
                                 </div>
                                 <div className="form-group">
                                     <input
@@ -264,6 +282,7 @@ const Personnel = () => {
                                         onChange={(e) => setFormData({...formData, role: e.target.value})}
                                         required
                                     >
+                                        <option value="" disabled>Select Role</option>
                                         <option value="client">Client</option>
                                         <option value="engineer">Engineer</option>
                                         <option value="manager">Manager</option>
@@ -271,18 +290,40 @@ const Personnel = () => {
                                     </select>
                                 </div>
                                 <div className="modal-actions">
-                                    <button type="submit" className="submit-btn">
-                                        {editingUser ? 'Update' : 'Add'} Personnel
-                                    </button>
                                     <button type="button" className="cancel-btn" onClick={() => setIsModalOpen(false)}>
                                         Cancel
                                     </button>
+                                    <button type="submit" className="submit-btn">
+                                        {editingUser ? 'Update' : 'Add'} Personnel
+                                    </button>
                                 </div>
                             </form>
+                            {formErrors.general && (
+                                <div className="form-error" style={{ marginBottom: '1rem' }}>
+                                    {formErrors.general}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {notification.show && (
+                    <div className="notification">
+                        <div className="notification-message">
+                            {notification.message}
                         </div>
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal 
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={confirmDelete}
+                message="Are you sure you want to delete this user?"
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 };
