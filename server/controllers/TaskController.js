@@ -384,11 +384,12 @@ const taskController = {
                 changeType: 'Updated',
                 oldValue: { 
                     TaskName: task.TaskName,
-                    subtask: oldSubtask 
+                    Status: oldSubtask.Status
                 },
                 newValue: { 
                     TaskName: task.TaskName,
-                    subtask: subtask 
+                    Status: subtask.Status,
+                    message: `Subtask "${subtask.TaskName}" status changed from "${oldSubtask.Status}" to "${subtask.Status}"`
                 },
                 timestamp: new Date()
             });

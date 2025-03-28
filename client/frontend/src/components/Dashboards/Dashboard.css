@@ -1102,19 +1102,29 @@ select.filter-input {
 
 .status-change {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.875rem;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.change-message {
+  color: #666;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  width: 100%;
 }
 
 .old-status {
-  color: #dc2626;
+  color: #999;
   text-decoration: line-through;
 }
 
 .new-status {
-  color: #059669;
+  color: #1b5e20;
+  font-weight: 500;
 }
 
 .log-footer {

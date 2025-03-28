@@ -144,7 +144,6 @@ const LogEntry = ({ log }) => {
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
 
-
   if (log.newValue?.type === 'due_date_notification') {
     return (
       <div className="log-entry reminder">
@@ -169,7 +168,11 @@ const LogEntry = ({ log }) => {
         </span>
       </div>
       
-      {log.oldValue && log.newValue && ['Status'].includes(Object.keys(log.oldValue)[0]) && (
+      {log.newValue?.message ? (
+        <div className="status-change">
+          <span className="change-message">{log.newValue.message}</span>
+        </div>
+      ) : log.oldValue && log.newValue && ['Status'].includes(Object.keys(log.oldValue)[0]) && (
         <div className="status-change">
           <span className="old-status">{log.oldValue.Status}</span>
           <span className="new-status">{log.newValue.Status}</span>
