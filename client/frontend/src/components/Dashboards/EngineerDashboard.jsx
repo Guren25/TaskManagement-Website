@@ -16,6 +16,7 @@ import TaskModal from '../TaskModal';
 import './Dashboard.css';
 import { format } from 'date-fns';
 import SideNav from '../SideNav';
+import ConfirmationModal from '../ConfirmationModal';
 
 ChartJS.register(
   CategoryScale,
@@ -215,6 +216,12 @@ const EngineerDashboard = () => {
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight
+  });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    message: '',
+    onConfirm: null,
+    subtaskData: null
   });
 
   useEffect(() => {
@@ -733,6 +740,59 @@ const EngineerDashboard = () => {
     setFilteredTasks(sorted);
   };
 
+  const handleSubtaskClick = (subtask, taskId) => {
+    if (subtask.Status === 'not-started') {
+      setConfirmationModal({
+        isOpen: true,
+        message: `Do you want to start working on subtask "${subtask.TaskName}"?`,
+        confirmText: 'Start Task',
+        onConfirm: () => updateSubtaskStatus(taskId, subtask, 'in-progress')
+      });
+    } else if (subtask.Status === 'in-progress') {
+      setConfirmationModal({
+        isOpen: true,
+        message: `Have you completed subtask "${subtask.TaskName}"?`,
+        confirmText: 'Mark as Complete',
+        onConfirm: () => updateSubtaskStatus(taskId, subtask, 'completed')
+      });
+    }
+  };
+
+  const updateSubtaskStatus = async (taskId, subtask, newStatus) => {
+    try {
+      const response = await axios.patch(`/api/tasks/${taskId}/subtask/${subtask._id}/status`, {
+        Status: newStatus,
+        ChangedBy: currentUser ? `${currentUser.firstname} ${currentUser.lastname}` : 'Unknown'
+      });
+
+      if (response.data) {
+        setTasks(prevTasks => {
+          return prevTasks.map(task => {
+            if (task._id === taskId) {
+              return response.data; // The controller returns the updated task
+            }
+            return task;
+          });
+        });
+
+        if (selectedTask && selectedTask._id === taskId) {
+          setSelectedTask(response.data);
+        }
+
+        setConfirmationModal({ isOpen: false, message: '', onConfirm: null });
+      }
+    } catch (error) {
+      console.error('Error updating subtask status:', error);
+      console.error('Request details:', {
+        taskId,
+        subtaskId: subtask._id,
+        newStatus,
+        endpoint: `/api/tasks/${taskId}/subtask/${subtask._id}/status` // Log the exact endpoint being used
+      });
+      alert('Failed to update subtask status. Please try again.');
+    }
+  };
+
   return (
     <div className="admin-layout">
       <SideNav />
@@ -939,7 +999,12 @@ const EngineerDashboard = () => {
                     <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
                     <div className="subtasks-list">
                       {selectedTask.subtask.map((subtask, index) => (
-                        <div key={index} className="subtask-item">
+                        <div 
+                          key={index} 
+                          className="subtask-item"
+                          onClick={() => handleSubtaskClick(subtask, selectedTask._id)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <div className="subtask-content">
                             <span className="subtask-name">{subtask.TaskName}</span>
                             <div className="subtask-badges">
@@ -976,6 +1041,14 @@ const EngineerDashboard = () => {
           />
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ isOpen: false, message: '', onConfirm: null })}
+        onConfirm={confirmationModal.onConfirm}
+        message={confirmationModal.message}
+        confirmText={confirmationModal.confirmText}
+      />
     </div>
   );
 };
