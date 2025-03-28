@@ -107,22 +107,21 @@ const userController = {
                 role,
                 phone,
                 isTemporaryPassword: isTemporaryPassword || false,
-                status: "unverified"  // Explicitly set status
+                status: "unverified"
             });
 
-            // Save user first
+            // Save user
             const savedUser = await user.save();
             
-            // Then attempt to send verification email
+            // Send welcome email with credentials
             try {
-                await emailService.sendVerificationEmail(savedUser);
-                console.log(`Verification email sent to ${email}`);
+                await emailService.sendWelcomeEmail(savedUser, password);
+                console.log(`Welcome email sent to ${email}`);
             } catch (emailError) {
-                console.error('Failed to send verification email:', emailError);
-                // Delete the user if we couldn't send the verification email
+                console.error('Failed to send welcome email:', emailError);
                 await User.findByIdAndDelete(savedUser._id);
                 return res.status(500).json({ 
-                    message: "Failed to send verification email",
+                    message: "Failed to send welcome email",
                     error: emailError.message 
                 });
             }
@@ -132,7 +131,7 @@ const userController = {
 
             res.status(201).json({
                 ...userResponse,
-                message: "Please check your email to verify your account"
+                message: "User created successfully. Credentials have been sent to their email."
             });
         } catch (error) {
             console.error('User creation error:', error);
@@ -200,17 +199,17 @@ const userController = {
                 return res.status(401).json({ message: "Invalid email or password" });
             }
 
-            // Check if user is verified
-            if (user.status === "unverified") {
+            const isValidPassword = await bcrypt.compare(password, user.password);
+            if (!isValidPassword) {
+                return res.status(401).json({ message: "Invalid email or password" });
+            }
+
+            // Only check verification status if it's not a temporary password
+            if (!user.isTemporaryPassword && user.status === "unverified") {
                 return res.status(401).json({ 
                     message: "Please verify your email before logging in",
                     unverified: true
                 });
-            }
-
-            const isValidPassword = await bcrypt.compare(password, user.password);
-            if (!isValidPassword) {
-                return res.status(401).json({ message: "Invalid email or password" });
             }
 
             const token = jwt.sign(
@@ -223,7 +222,8 @@ const userController = {
 
             res.status(200).json({
                 token,
-                user: userResponse
+                user: userResponse,
+                requirePasswordChange: user.isTemporaryPassword
             });
         } catch (error) {
             res.status(500).json({ message: "Error logging in", error: error.message });
@@ -232,26 +232,29 @@ const userController = {
 
     changePassword: async (req, res) => {
         try {
-            const { currentPassword, newPassword } = req.body;
             const userId = req.params.id;
+            console.log('Attempting to change password for user:', userId);
+            const { newPassword } = req.body;
 
             const user = await User.findById(userId);
             if (!user) {
+                console.log('User not found:', userId);
                 return res.status(404).json({ message: "User not found" });
-            }
-            const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-            if (!isPasswordValid) {
-                return res.status(401).json({ message: "Current password is incorrect" });
             }
 
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(newPassword, salt);
 
             user.password = hashedPassword;
+            user.isTemporaryPassword = false;
+            if (user.status === "unverified") {
+                user.status = "verified";
+            }
             await user.save();
 
-            res.status(200).json({ message: "Password updated successfully" });
+            res.status(200).json({ message: "Password changed successfully" });
         } catch (error) {
+            console.error('Change password error:', error);
             res.status(500).json({ message: "Error changing password", error: error.message });
         }
     },
@@ -416,6 +419,30 @@ const userController = {
         }
     },
     validateEmail,
+    sendVerificationEmail: async (req, res) => {
+        try {
+            const userId = req.params.id;
+            const user = await User.findById(userId);
+            
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            if (user.status === "verified") {
+                return res.status(400).json({ message: "User is already verified" });
+            }
+
+            await emailService.sendVerificationEmail(user);
+            
+            res.status(200).json({ message: "Verification email sent successfully" });
+        } catch (error) {
+            console.error('Error sending verification email:', error);
+            res.status(500).json({ 
+                message: "Error sending verification email",
+                error: error.message 
+            });
+        }
+    },
 };
 
 module.exports = userController;

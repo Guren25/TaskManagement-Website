@@ -24,6 +24,8 @@ const Personnel = () => {
     const [formErrors, setFormErrors] = useState({});
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
+    const [userToVerify, setUserToVerify] = useState(null);
 
     useEffect(() => {
         fetchPersonnel();
@@ -58,7 +60,8 @@ const Personnel = () => {
                     isTemporaryPassword: true
                 };
                 
-                await axios.post('/api/users/register', userData);
+                const response = await axios.post('/api/users/register', userData);
+                showNotification(response.data.message);
                 setIsModalOpen(false);
                 setEditingUser(null);
                 resetForm();
@@ -133,6 +136,16 @@ const Personnel = () => {
         setTimeout(() => {
             setNotification({ show: false, message: '' });
         }, 3000);
+    };
+
+    const handleSendVerification = async (user) => {
+        try {
+            await axios.post(`/api/users/${user._id}/send-verification`);
+            showNotification('Verification email sent successfully');
+            setShowVerificationModal(false);
+        } catch (error) {
+            setFormErrors({ general: 'Failed to send verification email' });
+        }
     };
 
     return (
@@ -322,6 +335,15 @@ const Personnel = () => {
                 onConfirm={confirmDelete}
                 message="Are you sure you want to delete this user?"
                 confirmText="Delete"
+                cancelText="Cancel"
+            />
+
+            <ConfirmationModal 
+                isOpen={showVerificationModal}
+                onClose={() => setShowVerificationModal(false)}
+                onConfirm={() => handleSendVerification(userToVerify)}
+                message="Would you like to send a verification email to this user?"
+                confirmText="Send Email"
                 cancelText="Cancel"
             />
         </div>

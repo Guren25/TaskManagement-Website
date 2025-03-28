@@ -382,8 +382,14 @@ const taskController = {
                 taskID: taskId,
                 changedBy: ChangedBy,
                 changeType: 'Updated',
-                oldValue: { subtask: oldSubtask },
-                newValue: { subtask: subtask },
+                oldValue: { 
+                    TaskName: task.TaskName,
+                    subtask: oldSubtask 
+                },
+                newValue: { 
+                    TaskName: task.TaskName,
+                    subtask: subtask 
+                },
                 timestamp: new Date()
             });
             await activityLog.save();

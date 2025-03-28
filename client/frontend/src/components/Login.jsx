@@ -40,6 +40,11 @@ const Login = () => {
       try {
         console.log("Attempting login with:", { email: formData.email });
         const response = await login(formData.email, formData.password);
+        console.log('Login response:', response);
+        if (response.requirePasswordChange) {
+          navigate(`/change-password?userId=${response.user._id}`);
+          return;
+        }
         switch (response.user.role) {
           case 'admin':
           case 'manager':

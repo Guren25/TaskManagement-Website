@@ -64,9 +64,17 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const res = await axios.post('/api/users/login', { email, password });
-      setToken(res.data.token);
+      
+      // Make sure the token is being stored properly
+      const token = res.data.token;
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      setToken(token);
       setUser(res.data.user);
       localStorage.setItem('user', JSON.stringify(res.data.user));
+      
+      console.log('Login successful:', res.data); // Add this for debugging
       return res.data;
     } catch (err) {
       console.error("Login error details:", err);
