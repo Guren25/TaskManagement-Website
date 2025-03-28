@@ -40,10 +40,20 @@ const Login = () => {
       try {
         console.log("Attempting login with:", { email: formData.email });
         const response = await login(formData.email, formData.password);
-        if (response.user.role === 'admin' || response.user.role === 'manager') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/dashboard');
+        switch (response.user.role) {
+          case 'admin':
+          case 'manager':
+            navigate('/admin/dashboard');
+            break;
+          case 'engineer':
+            navigate('/engineer/dashboard');
+            break;
+          case 'client':
+            navigate('/client/dashboard');
+            break;
+          default:
+            console.error('Unknown user role:', response.user.role);
+            navigate('/login');
         }
       } catch (err) {
         console.error("Login error details:", err);

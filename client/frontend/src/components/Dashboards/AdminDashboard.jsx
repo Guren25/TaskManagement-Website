@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import axios from 'axios';
 import TaskModal from '../TaskModal';
-import './AdminDashboard.css';
+import './Dashboard.css';
 import { format } from 'date-fns';
 import SideNav from '../SideNav';
 
