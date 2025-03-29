@@ -760,13 +760,13 @@ select.filter-input {
   gap: 0.5rem;
 }
 
-.status-badge, .priority-badge {
-  display: inline-block;
-  padding: 0.2rem 0.5rem;
+.status-badge, .priority-badge, .percentage-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
   border-radius: 4px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  text-transform: capitalize;
 }
 
 .status-badge.completed {
@@ -799,6 +799,11 @@ select.filter-input {
   color: #5856d6;
 }
 
+.percentage-badge {
+  background-color: rgba(52, 199, 89, 0.1);
+  color: #34C759;
+}
+
 .task-details {
   max-height: 0;
   overflow: hidden;
@@ -820,6 +825,10 @@ select.filter-input {
   text-align: left;
 }
 
+.task-detail-row.progress-row {
+  align-items: center;
+}
+
 .detail-label {
   font-weight: 500;
   color: #666;
@@ -833,20 +842,10 @@ select.filter-input {
   text-align: left;
 }
 
-.priority-badge,
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
 .progress-container {
   width: 300px;
   background: #e5e5ea;
-  height: 8px;
+  height: 24px;
   border-radius: 4px;
   overflow: hidden;
   position: relative;
@@ -859,6 +858,10 @@ select.filter-input {
   background-color: #E5E5EA;
   border-radius: 3px;
   transition: width 0.3s ease, background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
 }
 
 .progress-bar:not([style*="width: 0%"]) {
@@ -867,11 +870,16 @@ select.filter-input {
 
 .progress-text {
   position: absolute;
-  right: -30px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.8rem;
-  color: #666;
+  transform: translate(-50%, -50%);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+  z-index: 5;
+  display: inline-block;
+  white-space: nowrap;
+  text-shadow: 0px 0px 3px rgba(255, 255, 255, 0.8);
 }
 
 .subtask-list {
@@ -1292,8 +1300,10 @@ select.filter-input {
 }
 
 .task-modal .progress-container {
-  width: 300px;
-  height: 8px;
+  width: 80%;
+  height: 24px;
+  position: relative;
+  margin-right: 50px;
 }
 
 .task-modal .progress-bar {
@@ -1301,10 +1311,28 @@ select.filter-input {
   background-color: #E5E5EA;
   border-radius: 4px;
   transition: width 0.3s ease, background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
 }
 
 .task-modal .progress-bar:not([style*="width: 0%"]) {
   background-color: #34C759;
+}
+
+.task-modal .progress-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  z-index: 5;
+  display: inline-block;
+  white-space: nowrap;
+  text-shadow: 0px 0px 3px rgba(255, 255, 255, 0.8);
 }
 
 .task-list-header {

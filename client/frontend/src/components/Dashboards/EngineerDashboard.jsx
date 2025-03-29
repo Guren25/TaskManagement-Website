@@ -1056,13 +1056,9 @@ const EngineerDashboard = () => {
                   </div>
                   <div className="task-detail-row">
                     <span className="detail-label">Progress:</span>
-                    <div className="progress-container">
-                      <div 
-                        className="progress-bar" 
-                        style={{ width: `${selectedTask.percentage}%` }}
-                      ></div>
-                      <span className="progress-text">{selectedTask.percentage}%</span>
-                    </div>
+                    <span className="percentage-badge">
+                      {selectedTask.percentage || 0}%
+                    </span>
                   </div>
                 </div>
                 
