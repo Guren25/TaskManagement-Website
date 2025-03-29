@@ -173,14 +173,41 @@ const Personnel = () => {
     const confirmStatusUpdate = async () => {
         try {
             const newStatus = userToUpdateStatus.status === "deactivated" ? "verified" : "deactivated";
-            await axios.patch(`/api/users/${userToUpdateStatus._id}/status`, { status: newStatus });
+            
+            console.log(`Attempting to update user status for ${userToUpdateStatus.email}:`, 
+                { userId: userToUpdateStatus._id, newStatus });
+            
+            const response = await axios.patch(
+                `/api/users/${userToUpdateStatus._id}/status`, 
+                { status: newStatus }
+            );
+            
+            console.log('Status update response:', response.data);
+            
             fetchPersonnel();
             setShowStatusModal(false);
             setUserToUpdateStatus(null);
             showNotification(`User ${newStatus === "deactivated" ? "deactivated" : "activated"} successfully`);
         } catch (error) {
             console.error('Error updating user status:', error);
-            setFormErrors({ general: 'Failed to update user status' });
+            
+            // More detailed error logging
+            if (error.response) {
+                console.error('Server response:', error.response.data);
+                console.error('Status code:', error.response.status);
+                
+                // Show the specific error message from the server if available
+                const errorMessage = error.response.data?.message || 'Failed to update user status';
+                setFormErrors({ general: errorMessage });
+                showNotification(errorMessage, 'error');
+            } else if (error.request) {
+                console.error('No response received:', error.request);
+                setFormErrors({ general: 'Network error. Please try again.' });
+                showNotification('Network error. Please try again.', 'error');
+            } else {
+                setFormErrors({ general: 'Failed to update user status' });
+                showNotification('Failed to update user status', 'error');
+            }
         }
     };
 

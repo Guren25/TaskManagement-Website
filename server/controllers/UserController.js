@@ -429,29 +429,54 @@ const userController = {
             const { id } = req.params;
             const { status } = req.body;
             
+            console.log(`Updating user status: User ID=${id}, New Status=${status}`);
+            
+            // Validate the status value
+            if (!status) {
+                console.error('Status value is missing in request body');
+                return res.status(400).json({ message: "Status value is required" });
+            }
+            
             if (!["verified", "deactivated"].includes(status)) {
+                console.error(`Invalid status value: ${status}`);
                 return res.status(400).json({ message: "Invalid status value" });
             }
             
+            // Find the user
             const user = await User.findById(id);
             if (!user) {
+                console.error(`User not found with ID: ${id}`);
                 return res.status(404).json({ message: "User not found" });
             }
+            
+            console.log(`Found user: ${user.email}, Current status=${user.status}, New status=${status}`);
             
             // Prevent deactivating the last active admin user
             if (status === "deactivated" && user.role === "admin") {
                 const activeAdmins = await User.countDocuments({ role: "admin", status: "verified" });
+                console.log(`Active admins count: ${activeAdmins}`);
+                
                 if (activeAdmins <= 1) {
+                    console.error('Cannot deactivate the last active admin');
                     return res.status(400).json({ message: "Cannot deactivate the last active admin" });
                 }
             }
             
-            user.status = status;
-            await user.save();
+            // Update the user status without triggering full validation
+            await User.findByIdAndUpdate(
+                id,
+                { status: status },
+                { runValidators: false }
+            );
+            
+            console.log(`User status updated successfully: ${user.email}, New status=${status}`);
+            
+            // Get the updated user to return in response
+            const updatedUser = await User.findById(id).select('-password');
             
             res.status(200).json({ 
                 message: `User ${status === "deactivated" ? "deactivated" : "activated"} successfully`,
-                user
+                user: updatedUser
             });
         } catch (error) {
             console.error('Update user status error:', error);
