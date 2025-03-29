@@ -53,30 +53,71 @@ const Login = () => {
       setIsSubmitting(true);
       try {
         console.log("Attempting login with:", { email: formData.email });
-        const response = await login(formData.email, formData.password);
+        
+        // Pass credentials as object instead of separate parameters
+        const credentials = {
+          email: formData.email,
+          password: formData.password
+        };
+        
+        const response = await login(credentials);
         console.log('Login response:', response);
-        if (response.requirePasswordChange) {
-          navigate(`/change-password?userId=${response.user._id}`);
-          return;
-        }
-        switch (response.user.role) {
-          case 'admin':
-          case 'manager':
-            navigate('/admin/dashboard');
-            break;
-          case 'engineer':
-            navigate('/engineer/dashboard');
-            break;
-          case 'client':
-            navigate('/client/dashboard');
-            break;
-          default:
-            console.error('Unknown user role:', response.user.role);
-            navigate('/login');
+        
+        // If login was successful, user data will be in localStorage
+        if (response.success) {
+          const userData = JSON.parse(localStorage.getItem('user'));
+          
+          // Check if the userData exists and has a role before proceeding
+          if (!userData || !userData.role) {
+            console.error('User data or role is missing:', userData);
+            setToast({
+              show: true,
+              message: "Login successful but user data is incomplete. Please contact support.",
+              type: 'error'
+            });
+            return;
+          }
+          
+          // Handle password change requirement if needed
+          if (userData.requirePasswordChange) {
+            navigate(`/change-password?userId=${userData._id}`);
+            return;
+          }
+          
+          // Navigate based on user role
+          switch (userData.role.toLowerCase()) {
+            case 'admin':
+            case 'administrator':
+            case 'manager':
+              navigate('/admin/dashboard');
+              break;
+            case 'engineer':
+              navigate('/engineer/dashboard');
+              break;
+            case 'client':
+              navigate('/client/dashboard');
+              break;
+            default:
+              console.error('Unknown user role:', userData.role);
+              setToast({
+                show: true,
+                message: `Unknown user role: ${userData.role}. Please contact support.`,
+                type: 'error'
+              });
+              navigate('/login');
+          }
+        } else {
+          // Login was not successful, show the error message
+          setToast({
+            show: true,
+            message: response.error || "Login failed. Please check your credentials.",
+            type: 'error'
+          });
         }
       } catch (err) {
-        console.error("Login error details:", err);
-        // Handle deactivated account error
+        console.error("Login error:", err);
+        
+        // Handle different error scenarios
         if (err.response?.data?.deactivated) {
           setToast({
             show: true, 
@@ -92,7 +133,7 @@ const Login = () => {
         } else {
           setToast({
             show: true,
-            message: "Login failed. Please try again.",
+            message: "Login failed. Please check your credentials and try again.",
             type: 'error'
           });
         }

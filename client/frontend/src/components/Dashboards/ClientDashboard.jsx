@@ -364,6 +364,12 @@ const ClientDashboard = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (tasks.length > 0) {
+      fetchActivityLog();
+    }
+  }, [tasks]);
+
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
@@ -429,12 +435,55 @@ const ClientDashboard = () => {
           return taskClient === currentUserFullName || taskClient === currentUserEmail;
         }
         
-        // Include task-related logs
-        const taskClient = log.newValue?.Client || log.oldValue?.Client;
-        return taskClient === currentUserFullName || taskClient === currentUserEmail;
+        // Check if client is directly mentioned in the log
+        if (
+          log.newValue?.Client === currentUserFullName || 
+          log.newValue?.Client === currentUserEmail ||
+          log.oldValue?.Client === currentUserFullName ||
+          log.oldValue?.Client === currentUserEmail ||
+          log.newValue?.ClientName === currentUserFullName ||
+          log.oldValue?.ClientName === currentUserFullName
+        ) {
+          return true;
+        }
+        
+        // Check if this is a task the client is associated with
+        // Get the task ID from the log
+        const taskId = log.taskID || log.newValue?._id || log.oldValue?._id;
+        
+        // Find the corresponding task in our task list
+        const associatedTask = tasks.find(task => task._id === taskId);
+        if (associatedTask) {
+          return true;
+        }
+        
+        // Check if this is a status update for one of the client's tasks
+        if (
+          log.changeType === 'Updated' && 
+          (log.newValue?.Status || log.oldValue?.Status)
+        ) {
+          // Find task from our task list
+          const taskName = log.newValue?.TaskName || log.oldValue?.TaskName;
+          const matchingTask = tasks.find(task => task.TaskName === taskName);
+          if (matchingTask) {
+            return true;
+          }
+        }
+        
+        // Check for subtask updates in client's tasks
+        if (log.newValue?.subtask || log.oldValue?.subtask) {
+          const taskName = log.newValue?.TaskName || log.oldValue?.TaskName;
+          const matchingTask = tasks.find(task => task.TaskName === taskName);
+          if (matchingTask) {
+            return true;
+          }
+        }
+        
+        return false;
       });
       
       setActivityLog(filteredLogs);
+      console.log('Filtered activity logs for client:', filteredLogs.length);
     } catch (error) {
       console.error('Error fetching activity logs:', error);
     }
@@ -488,38 +537,33 @@ const ClientDashboard = () => {
       return d.toISOString().split('T')[0];
     }).reverse();
 
-    const myCompletedTasksByDate = {};
-    const myCreatedTasksByDate = {};
-    const mySubtasksByDate = {};
-
-    const currentUserFullName = currentUser ? 
-      `${currentUser.firstname} ${currentUser.lastname}` : '';
+    const completedTasksByDate = {};
+    const createdTasksByDate = {};
+    const subtasksByDate = {};
 
     tasks.forEach(task => {
-      const creationDate = new Date(task.CreatedAt).toISOString().split('T')[0];
-      const isMyTask = task.AssignedTo === currentUserFullName;
+      // For clients, all tasks in the tasks array are already filtered to be the client's tasks
+      // No need to filter by AssignedTo for clients
+      const creationDate = new Date(task.CreatedAt || task.timestamp || Date.now()).toISOString().split('T')[0];
+      
+      // Count this task as created
+      createdTasksByDate[creationDate] = (createdTasksByDate[creationDate] || 0) + 1;
+      
+      // If task is completed, count it
+      if (task.Status === 'completed') {
+        const completionDate = new Date(task.UpdatedAt || task.timestamp || Date.now()).toISOString().split('T')[0];
+        completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + 1;
+      }
 
-      // Track only my tasks
-      if (isMyTask) {
-        myCreatedTasksByDate[creationDate] = (myCreatedTasksByDate[creationDate] || 0) + 1;
-        if (task.Status === 'completed') {
-          const completionDate = new Date(task.UpdatedAt).toISOString().split('T')[0];
-          myCompletedTasksByDate[completionDate] = (myCompletedTasksByDate[completionDate] || 0) + 1;
-        }
-
-        // Handle my subtasks
-        if (task.subtask && task.subtask.length > 0) {
-          const mySubtasks = task.subtask.filter(sub => sub.AssignedTo === currentUserFullName);
-          if (mySubtasks.length > 0) {
-            mySubtasksByDate[creationDate] = (mySubtasksByDate[creationDate] || 0) + mySubtasks.length;
-          }
-
-          mySubtasks.forEach(subtask => {
-            if (subtask.Status === 'completed') {
-              const completionDate = new Date(task.UpdatedAt).toISOString().split('T')[0];
-              myCompletedTasksByDate[completionDate] = (myCompletedTasksByDate[completionDate] || 0) + 1;
-            }
-          });
+      // Count subtasks
+      if (task.subtask && task.subtask.length > 0) {
+        subtasksByDate[creationDate] = (subtasksByDate[creationDate] || 0) + task.subtask.length;
+        
+        // Count completed subtasks
+        const completedSubtasks = task.subtask.filter(sub => sub.Status === 'completed').length;
+        if (completedSubtasks > 0) {
+          const completionDate = new Date(task.UpdatedAt || task.timestamp || Date.now()).toISOString().split('T')[0];
+          completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + completedSubtasks;
         }
       }
     });
@@ -532,7 +576,7 @@ const ClientDashboard = () => {
       datasets: [
         {
           label: 'Completed Tasks',
-          data: lastNDays.map(date => myCompletedTasksByDate[date] || 0),
+          data: lastNDays.map(date => completedTasksByDate[date] || 0),
           borderColor: '#34C759',
           backgroundColor: 'rgba(52, 199, 89, 0.12)',
           borderWidth: 2.5,
@@ -544,7 +588,7 @@ const ClientDashboard = () => {
         },
         {
           label: 'New Tasks',
-          data: lastNDays.map(date => myCreatedTasksByDate[date] || 0),
+          data: lastNDays.map(date => createdTasksByDate[date] || 0),
           borderColor: '#007AFF',
           backgroundColor: 'rgba(0, 122, 255, 0.08)',
           borderWidth: 2.5,
@@ -556,7 +600,7 @@ const ClientDashboard = () => {
         },
         {
           label: 'Subtasks',
-          data: lastNDays.map(date => mySubtasksByDate[date] || 0),
+          data: lastNDays.map(date => subtasksByDate[date] || 0),
           borderColor: '#FF9500',
           backgroundColor: 'rgba(255, 149, 0, 0.08)',
           borderWidth: 2.5,
