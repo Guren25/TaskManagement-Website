@@ -1,0 +1,159 @@
+.personnel-list-container {
+  padding: 1.5rem;
+  background-color: #f5f5f7;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin: 1.5rem 0;
+}
+
+.personnel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.personnel-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2E7D32;
+  margin: 0;
+}
+
+.personnel-add-btn {
+  background-color: #2E7D32;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.personnel-add-btn:hover {
+  background-color: #1B5E20;
+}
+
+.personnel-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 150px;
+  color: #666;
+}
+
+.personnel-error {
+  color: #e53935;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid rgba(229, 57, 53, 0.2);
+  border-radius: 4px;
+  background-color: rgba(229, 57, 53, 0.1);
+}
+
+.personnel-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+
+.personnel-table-container {
+  overflow-x: auto;
+}
+
+.personnel-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.personnel-table th,
+.personnel-table td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.personnel-table th {
+  font-weight: 600;
+  color: #444;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.personnel-table tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.personnel-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.view-btn {
+  background-color: #03A9F4;
+  color: white;
+}
+
+.view-btn:hover {
+  background-color: #0288D1;
+}
+
+.edit-btn {
+  background-color: #FFC107;
+  color: #333;
+}
+
+.edit-btn:hover {
+  background-color: #FFA000;
+}
+
+.delete-btn {
+  background-color: #F44336;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #D32F2F;
+}
+
+/* Disabled button styles */
+.action-btn[disabled],
+.personnel-add-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .personnel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .personnel-table th,
+  .personnel-table td {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .personnel-actions {
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+} 

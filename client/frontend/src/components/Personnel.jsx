@@ -4,6 +4,8 @@ import './Personnel.css';
 import SideNav from './SideNav';
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
+import PersonnelModal from './PersonnelModal';
+import { useAuth } from '../context/AuthContext';
 
 const Personnel = () => {
     const [personnel, setPersonnel] = useState([]);
@@ -29,10 +31,25 @@ const Personnel = () => {
     const [userToVerify, setUserToVerify] = useState(null);
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [userToUpdateStatus, setUserToUpdateStatus] = useState(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [isManager, setIsManager] = useState(false);
+    
+    const { user } = useAuth();
 
     useEffect(() => {
         fetchPersonnel();
-    }, [filters]);
+        checkUserRole();
+    }, [filters, user]);
+    
+    const checkUserRole = () => {
+        if (user) {
+            const role = user.role?.toLowerCase();
+            setIsAdmin(role === 'admin' || role === 'administrator');
+            setIsManager(role === 'manager' || role === 'project manager');
+        }
+    };
 
     const fetchPersonnel = async () => {
         try {
@@ -167,6 +184,11 @@ const Personnel = () => {
         }
     };
 
+    const handleView = (user) => {
+        setSelectedUser(user);
+        setIsViewModalOpen(true);
+    };
+
     return (
         <div className="admin-layout">
             <SideNav />
@@ -191,16 +213,18 @@ const Personnel = () => {
                             <option value="admin">Admin</option>
                         </select>
                         
-                        <button 
-                            className="add-personnel-btn" 
-                            onClick={() => {
-                                resetForm();
-                                setEditingUser(null);
-                                setIsModalOpen(true);
-                            }}
-                        >
-                            Add Personnel
-                        </button>
+                        {(isAdmin || isManager) && (
+                            <button 
+                                className="add-personnel-btn" 
+                                onClick={() => {
+                                    resetForm();
+                                    setEditingUser(null);
+                                    setIsModalOpen(true);
+                                }}
+                            >
+                                Add Personnel
+                            </button>
+                        )}
                     </div>
 
                     <div className="personnel-container">
@@ -227,23 +251,38 @@ const Personnel = () => {
                                             <td>
                                                 <div className="action-buttons">
                                                     <button 
-                                                        className="edit-btn"
-                                                        onClick={() => handleEdit(user)}
+                                                        className="view-btn"
+                                                        onClick={() => handleView(user)}
                                                     >
-                                                        Edit
+                                                        View
                                                     </button>
-                                                    <button 
-                                                        className="delete-btn"
-                                                        onClick={() => handleDelete(user._id)}
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                    <button
-                                                        className={user.status === "deactivated" ? "activate-btn" : "deactivate-btn"}
-                                                        onClick={() => handleStatusUpdate(user)}
-                                                    >
-                                                        {user.status === "deactivated" ? "Activate" : "Deactivate"}
-                                                    </button>
+                                                    
+                                                    {isAdmin && (
+                                                        <button 
+                                                            className="edit-btn"
+                                                            onClick={() => handleEdit(user)}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    )}
+                                                    
+                                                    {isAdmin && (
+                                                        <button 
+                                                            className="delete-btn"
+                                                            onClick={() => handleDelete(user._id)}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    )}
+                                                    
+                                                    {isAdmin && (
+                                                        <button
+                                                            className={user.status === "deactivated" ? "activate-btn" : "deactivate-btn"}
+                                                            onClick={() => handleStatusUpdate(user)}
+                                                        >
+                                                            {user.status === "deactivated" ? "Activate" : "Deactivate"}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -373,6 +412,18 @@ const Personnel = () => {
                 confirmText={userToUpdateStatus?.status === "deactivated" ? "Activate" : "Deactivate"}
                 cancelText="Cancel"
             />
+
+            {isViewModalOpen && selectedUser && (
+                <PersonnelModal 
+                    isOpen={isViewModalOpen}
+                    onClose={() => {
+                        setIsViewModalOpen(false);
+                        setSelectedUser(null);
+                    }}
+                    personnelId={selectedUser._id}
+                    userRole={user?.role}
+                />
+            )}
         </div>
     );
 };
