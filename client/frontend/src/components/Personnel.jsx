@@ -26,6 +26,8 @@ const Personnel = () => {
     const [userToDelete, setUserToDelete] = useState(null);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [userToVerify, setUserToVerify] = useState(null);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [userToUpdateStatus, setUserToUpdateStatus] = useState(null);
 
     useEffect(() => {
         fetchPersonnel();
@@ -148,6 +150,25 @@ const Personnel = () => {
         }
     };
 
+    const handleStatusUpdate = (user) => {
+        setUserToUpdateStatus(user);
+        setShowStatusModal(true);
+    };
+
+    const confirmStatusUpdate = async () => {
+        try {
+            const newStatus = userToUpdateStatus.status === "deactivated" ? "verified" : "deactivated";
+            await axios.patch(`/api/users/${userToUpdateStatus._id}/status`, { status: newStatus });
+            fetchPersonnel();
+            setShowStatusModal(false);
+            setUserToUpdateStatus(null);
+            showNotification(`User ${newStatus === "deactivated" ? "deactivated" : "activated"} successfully`);
+        } catch (error) {
+            console.error('Error updating user status:', error);
+            setFormErrors({ general: 'Failed to update user status' });
+        }
+    };
+
     return (
         <div className="admin-layout">
             <SideNav />
@@ -220,10 +241,10 @@ const Personnel = () => {
                                                         Delete
                                                     </button>
                                                     <button
-                                                        className="view-btn"
-                                                        onClick={() => handleView(user)}
+                                                        className={user.status === "deactivated" ? "activate-btn" : "deactivate-btn"}
+                                                        onClick={() => handleStatusUpdate(user)}
                                                     >
-                                                        Deactivate
+                                                        {user.status === "deactivated" ? "Activate" : "Deactivate"}
                                                     </button>
                                                 </div>
                                             </td>
@@ -344,6 +365,15 @@ const Personnel = () => {
                 onConfirm={() => handleSendVerification(userToVerify)}
                 message="Would you like to send a verification email to this user?"
                 confirmText="Send Email"
+                cancelText="Cancel"
+            />
+
+            <ConfirmationModal
+                isOpen={showStatusModal}
+                onClose={() => setShowStatusModal(false)}
+                onConfirm={confirmStatusUpdate}
+                message={`Are you sure you want to ${userToUpdateStatus?.status === "deactivated" ? "activate" : "deactivate"} this user?`}
+                confirmText={userToUpdateStatus?.status === "deactivated" ? "Activate" : "Deactivate"}
                 cancelText="Cancel"
             />
         </div>

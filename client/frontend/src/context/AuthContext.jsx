@@ -80,6 +80,8 @@ export const AuthProvider = ({ children }) => {
       console.error("Login error details:", err);
       if (err.code === 'ERR_NETWORK') {
         setError('Unable to connect to server. Please check your connection or try again later.');
+      } else if (err.response?.data?.deactivated) {
+        setError('Your account has been deactivated. Please contact an administrator.');
       } else {
         setError(err.response?.data?.message || "Login failed");
       }

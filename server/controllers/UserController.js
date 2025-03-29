@@ -200,6 +200,14 @@ const userController = {
                 return res.status(401).json({ message: "Invalid email or password" });
             }
 
+            // Add check for deactivated status
+            if (user.status === "deactivated") {
+                return res.status(401).json({ 
+                    message: "Your account has been deactivated. Please contact an administrator.",
+                    deactivated: true
+                });
+            }
+
             const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
                 return res.status(401).json({ message: "Invalid email or password" });
@@ -414,6 +422,40 @@ const userController = {
         } catch (error) {
             console.error('Reset password error:', error);
             res.status(500).json({ message: "Error resetting password", error: error.message });
+        }
+    },
+    updateUserStatus: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+            
+            if (!["verified", "deactivated"].includes(status)) {
+                return res.status(400).json({ message: "Invalid status value" });
+            }
+            
+            const user = await User.findById(id);
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+            
+            // Prevent deactivating the last active admin user
+            if (status === "deactivated" && user.role === "admin") {
+                const activeAdmins = await User.countDocuments({ role: "admin", status: "verified" });
+                if (activeAdmins <= 1) {
+                    return res.status(400).json({ message: "Cannot deactivate the last active admin" });
+                }
+            }
+            
+            user.status = status;
+            await user.save();
+            
+            res.status(200).json({ 
+                message: `User ${status === "deactivated" ? "deactivated" : "activated"} successfully`,
+                user
+            });
+        } catch (error) {
+            console.error('Update user status error:', error);
+            res.status(500).json({ message: "Error updating user status", error: error.message });
         }
     },
     validateEmail,

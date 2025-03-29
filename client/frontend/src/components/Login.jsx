@@ -62,6 +62,20 @@ const Login = () => {
         }
       } catch (err) {
         console.error("Login error details:", err);
+        // Handle deactivated account error
+        if (err.response?.data?.deactivated) {
+          setFormErrors({
+            general: "Your account has been deactivated. Please contact an administrator."
+          });
+        } else if (err.response?.data?.message) {
+          setFormErrors({
+            general: err.response.data.message
+          });
+        } else {
+          setFormErrors({
+            general: "Login failed. Please try again."
+          });
+        }
       } finally {
         setIsSubmitting(false);
       }

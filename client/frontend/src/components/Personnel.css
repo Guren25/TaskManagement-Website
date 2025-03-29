@@ -151,6 +151,15 @@
     opacity: 0.75;
 }
 
+/* Add styles for activate/deactivate buttons */
+.action-buttons .activate-btn {
+    background-color: #4CAF50 !important; /* Green color for activation */
+}
+
+.action-buttons .deactivate-btn {
+    background-color: #f44336 !important; /* Red color for deactivation */
+}
+
 .modal {
     position: fixed;
     top: 0;
