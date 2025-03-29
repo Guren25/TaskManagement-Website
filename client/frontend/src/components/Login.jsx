@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import Toast from './Toast';
 import './Login.css';
 
 const Login = () => {
@@ -10,9 +11,17 @@ const Login = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
   
   const { login, error, user } = useAuth();
   const navigate = useNavigate();
+
+  // Show toast when there's an auth context error
+  useEffect(() => {
+    if (error) {
+      setToast({ show: true, message: error, type: 'error' });
+    }
+  }, [error]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,16 +73,22 @@ const Login = () => {
         console.error("Login error details:", err);
         // Handle deactivated account error
         if (err.response?.data?.deactivated) {
-          setFormErrors({
-            general: "Your account has been deactivated. Please contact an administrator."
+          setToast({
+            show: true, 
+            message: "Your account has been deactivated. Please contact an administrator.",
+            type: 'error'
           });
         } else if (err.response?.data?.message) {
-          setFormErrors({
-            general: err.response.data.message
+          setToast({
+            show: true,
+            message: err.response.data.message,
+            type: 'error'
           });
         } else {
-          setFormErrors({
-            general: "Login failed. Please try again."
+          setToast({
+            show: true,
+            message: "Login failed. Please try again.",
+            type: 'error'
           });
         }
       } finally {
@@ -86,8 +101,6 @@ const Login = () => {
     <div className="auth-login-container">
       <div className="auth-login-form">
         <h2 className="auth-login-title">Login</h2>
-        
-        {error && <div className="auth-error-message">{error}</div>}
         
         <form onSubmit={handleSubmit}>
           <div className="auth-form-group">
@@ -129,6 +142,13 @@ const Login = () => {
           </div>
         </form>
       </div>
+
+      <Toast 
+        show={toast.show} 
+        message={toast.message} 
+        type={toast.type} 
+        onClose={() => setToast({ ...toast, show: false })} 
+      />
     </div>
   );
 };

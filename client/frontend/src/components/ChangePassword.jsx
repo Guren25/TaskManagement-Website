@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import Toast from './Toast';
 import './ChangePassword.css';
 
 const ChangePassword = () => {
@@ -9,8 +10,11 @@ const ChangePassword = () => {
     newPassword: '',
     confirmPassword: ''
   });
-  const [message, setMessage] = useState('');
-  const [isError, setIsError] = useState(false);
+  const [toast, setToast] = useState({ 
+    show: false, 
+    message: '', 
+    type: 'info' 
+  });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -26,15 +30,24 @@ const ChangePassword = () => {
     token: localStorage.getItem('token')
   });
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage('');
-    setIsError(false);
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setIsError(true);
-      setMessage('Passwords do not match');
+      setToast({
+        show: true,
+        message: 'Passwords do not match',
+        type: 'error'
+      });
       setIsLoading(false);
       return;
     }
@@ -44,77 +57,78 @@ const ChangePassword = () => {
         await axios.post(`/api/users/reset-password/${resetToken}`, {
           newPassword: formData.newPassword
         });
-        setMessage('Password reset successful. Redirecting to login...');
+        setToast({
+          show: true,
+          message: 'Password reset successful. Redirecting to login...',
+          type: 'success'
+        });
         setTimeout(() => navigate('/login'), 2000);
       } else {
         await axios.post(`/api/users/${userId}/change-password`, {
           newPassword: formData.newPassword
         });
-        setMessage('Password changed successfully');
+        setToast({
+          show: true,
+          message: 'Password changed successfully',
+          type: 'success'
+        });
       }
-      setIsError(false);
     } catch (error) {
-      setIsError(true);
-      setMessage(error.response?.data?.message || 'Error changing password');
+      setToast({
+        show: true,
+        message: error.response?.data?.message || 'Error changing password',
+        type: 'error'
+      });
       console.error('Password change error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h3>Change Password</h3>
+        <h3>{resetToken ? 'Reset Password' : 'Change Password'}</h3>
         
-        {message && (
-          <div className={`auth-message ${isError ? 'error' : 'success'}`}>
-            {message}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <input
               type="password"
               name="newPassword"
-              placeholder="New Password"
               value={formData.newPassword}
               onChange={handleChange}
+              placeholder="New Password"
               required
-              minLength="6"
             />
           </div>
+          
           <div className="form-group">
             <input
               type="password"
               name="confirmPassword"
-              placeholder="Confirm New Password"
               value={formData.confirmPassword}
               onChange={handleChange}
+              placeholder="Confirm Password"
               required
-              minLength="6"
             />
           </div>
-          <div className="modal-actions">
-            <button 
-              type="submit" 
-              className="submit-btn"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Changing Password...' : 'Change Password'}
-            </button>
-          </div>
+          
+          <button 
+            type="submit" 
+            className="submit-btn"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing...' : resetToken ? 'Reset Password' : 'Change Password'}
+          </button>
         </form>
       </div>
+      
+      <Toast 
+        show={toast.show} 
+        message={toast.message} 
+        type={toast.type} 
+        onClose={() => setToast({ ...toast, show: false })} 
+      />
     </div>
   );
 };

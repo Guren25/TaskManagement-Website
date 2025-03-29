@@ -3,6 +3,7 @@ import axios from 'axios';
 import './Personnel.css';
 import SideNav from './SideNav';
 import ConfirmationModal from './ConfirmationModal';
+import Toast from './Toast';
 
 const Personnel = () => {
     const [personnel, setPersonnel] = useState([]);
@@ -20,7 +21,7 @@ const Personnel = () => {
         status: 'active'
     });
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
-    const [notification, setNotification] = useState({ show: false, message: '' });
+    const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
     const [formErrors, setFormErrors] = useState({});
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
@@ -133,11 +134,8 @@ const Personnel = () => {
         });
     };
 
-    const showNotification = (message) => {
-        setNotification({ show: true, message });
-        setTimeout(() => {
-            setNotification({ show: false, message: '' });
-        }, 3000);
+    const showNotification = (message, type = 'success') => {
+        setToast({ show: true, message, type });
     };
 
     const handleSendVerification = async (user) => {
@@ -341,13 +339,12 @@ const Personnel = () => {
                     </div>
                 )}
 
-                {notification.show && (
-                    <div className="notification">
-                        <div className="notification-message">
-                            {notification.message}
-                        </div>
-                    </div>
-                )}
+                <Toast 
+                    show={toast.show} 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast({ ...toast, show: false })} 
+                />
             </div>
 
             <ConfirmationModal 

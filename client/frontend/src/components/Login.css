@@ -67,6 +67,18 @@
   margin-top: 0.5rem;
   color: #ff3b30;
   font-size: 0.85rem;
+  animation: fadeIn 0.3s ease-in;
+  padding-left: 0.5rem;
+  text-align: left;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .auth-error-message {
