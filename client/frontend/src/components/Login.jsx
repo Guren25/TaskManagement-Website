@@ -107,11 +107,13 @@ const Login = () => {
           <button type="submit" className="auth-submit-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Logging in...' : 'Login'}
           </button>
+          
+          <div className="auth-links">
+            <Link to="/forgot-password" className="auth-forgot-password">
+              Forgot Password?
+            </Link>
+          </div>
         </form>
-        
-        <div className="auth-links">
-          <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
-        </div>
       </div>
     </div>
   );

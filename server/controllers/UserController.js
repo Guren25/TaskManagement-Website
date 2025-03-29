@@ -6,6 +6,7 @@ const emailValidator = require("email-validator");
 const dns = require("dns");
 const { promisify } = require('util');
 const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 
 const validateEmail = async (email) => {
     try {
@@ -353,68 +354,65 @@ const userController = {
     },
     forgotPassword: async (req, res) => {
         try {
+            // Add debug logging
+            console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+            
             const { email } = req.body;
             const user = await User.findOne({ email });
-            
+
             if (!user) {
-                return res.status(404).json({ message: 'No account found with this email.' });
+                return res.status(404).json({ message: "User not found" });
             }
 
-            // Generate reset token
-            const resetToken = crypto.randomBytes(32).toString('hex');
-            const resetTokenExpiry = Date.now() + 3600000; // Token expires in 1 hour
+            // Generate a unique reset token
+            const resetToken = uuidv4();
+            const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
-            // Save hashed token to user
-            user.resetPasswordToken = crypto
-                .createHash('sha256')
-                .update(resetToken)
-                .digest('hex');
-            user.resetPasswordExpire = resetTokenExpiry;
+            // Save the reset token to the user
+            user.resetToken = resetToken;
+            user.resetTokenExpiry = resetTokenExpiry;
             await user.save();
 
-            // For testing purposes, log the token (remove in production)
-            console.log('Reset Token for testing:', resetToken);
+            // Send reset email
+            const resetLink = `${process.env.FRONTEND_URL}/change-password?token=${resetToken}&userId=${user._id}`;
+            console.log('Generated reset link:', resetLink); // Debug log
+            
+            await emailService.sendPasswordResetEmail(user.email, resetLink);
 
-            try {
-                // Note the corrected function name here
-                await emailService.sendPasswordResetEmail(user, resetToken);
-                res.status(200).json({ message: 'Password reset email sent' });
-            } catch (emailError) {
-                console.error('Email sending error:', emailError);
-                res.status(500).json({ 
-                    message: 'Error sending password reset email',
-                    error: emailError.message 
-                });
-            }
+            res.status(200).json({ message: "Password reset instructions sent to your email" });
         } catch (error) {
             console.error('Forgot password error:', error);
-            res.status(500).json({ 
-                message: 'Error sending password reset email',
-                error: error.message 
-            });
+            res.status(500).json({ message: "Error processing forgot password request", error: error.message });
         }
     },
     resetPassword: async (req, res) => {
         try {
             const { token } = req.params;
             const { newPassword } = req.body;
-
+            
+            console.log('Reset password attempt with token:', token);
+            
             const user = await User.findOne({
-                resetPasswordToken: token,
-                resetPasswordExpires: { $gt: Date.now() }
+                resetToken: token,
+                resetTokenExpiry: { $gt: Date.now() }
             });
 
             if (!user) {
+                console.log('No user found with valid reset token');
                 return res.status(400).json({ message: "Invalid or expired reset token" });
             }
 
-            user.password = await bcrypt.hash(newPassword, 10);
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpires = undefined;
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+            user.password = hashedPassword;
+            user.resetToken = undefined;
+            user.resetTokenExpiry = undefined;
             await user.save();
 
             res.status(200).json({ message: "Password reset successful" });
         } catch (error) {
+            console.error('Reset password error:', error);
             res.status(500).json({ message: "Error resetting password", error: error.message });
         }
     },

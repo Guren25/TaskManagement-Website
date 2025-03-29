@@ -17,6 +17,7 @@ const ChangePassword = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const userId = user?._id || searchParams.get('userId');
+  const resetToken = searchParams.get('token');
 
   console.log('Current user:', user);
   console.log('Auth state:', {
@@ -39,40 +40,23 @@ const ChangePassword = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/users/${userId}/change-password`, 
-        {
+      if (resetToken) {
+        await axios.post(`/api/users/reset-password/${resetToken}`, {
           newPassword: formData.newPassword
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      
-      setMessage('Password changed successfully. Redirecting...');
+        });
+        setMessage('Password reset successful. Redirecting to login...');
+        setTimeout(() => navigate('/login'), 2000);
+      } else {
+        await axios.post(`/api/users/${userId}/change-password`, {
+          newPassword: formData.newPassword
+        });
+        setMessage('Password changed successfully');
+      }
       setIsError(false);
-      setTimeout(() => {
-        switch (user.role) {
-          case 'admin':
-          case 'manager':
-            navigate('/admin/dashboard');
-            break;
-          case 'engineer':
-            navigate('/engineer/dashboard');
-            break;
-          case 'client':
-            navigate('/client/dashboard');
-            break;
-          default:
-            navigate('/login');
-        }
-      }, 2000);
     } catch (error) {
-      console.error('Password change error:', error.response || error);
       setIsError(true);
-      setMessage(error.response?.data?.message || 'An error occurred. Please try again.');
+      setMessage(error.response?.data?.message || 'Error changing password');
+      console.error('Password change error:', error);
     } finally {
       setIsLoading(false);
     }

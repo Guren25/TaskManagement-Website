@@ -178,29 +178,41 @@ const sendVerificationEmail = async (user) => {
     }
 };
 
-const sendPasswordResetEmail = async (user, resetToken) => {
+const sendPasswordResetEmail = async (email, resetLink) => {
     try {
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });
 
         const mailOptions = {
             from: process.env.EMAIL_USER,
-            to: user.email,
+            to: email,
             subject: 'Password Reset Request',
             html: `
-                <h2>Password Reset Request</h2>
-                <p>Dear ${user.firstname} ${user.lastname},</p>
-                <p>You requested a password reset. Please click the link below to reset your password:</p>
-                <p><a href="${resetUrl}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-                <p>Or copy and paste this link in your browser:</p>
-                <p>${resetUrl}</p>
-                <p>This link will expire in 1 hour.</p>
-                <p>If you did not request this reset, please ignore this email.</p>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #3A7D44;">Password Reset Request</h2>
+                    <p>You have requested to reset your password. Click the link below to proceed:</p>
+                    <p style="margin: 20px 0;">
+                        <a href="${resetLink}" 
+                           style="background-color: #3A7D44; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                            Reset Password
+                        </a>
+                    </p>
+                    <p>This link will expire in 1 hour.</p>
+                    <p>If you didn't request this password reset, please ignore this email.</p>
+                    <p style="color: #666; font-size: 0.9em; margin-top: 20px;">
+                        This is an automated message, please do not reply to this email.
+                    </p>
+                </div>
             `
         };
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Password reset email sent:', info.response);
-        return true;
+        await transporter.sendMail(mailOptions);
+        console.log('Password reset email sent successfully');
     } catch (error) {
         console.error('Error sending password reset email:', error);
         throw error;

@@ -9,6 +9,7 @@ import ProtectedEngineerRoute from './components/ProtectedEngineerRoute';
 import ProtectedClientRoute from './components/ProtectedClientRoute';
 import ClientDashboard from './components/Dashboards/ClientDashboard';
 import ChangePassword from './components/ChangePassword';
+import ForgotPassword from './components/ForgotPassword';
 import './App.css';
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -27,6 +28,7 @@ function App() {
         <div className="app-container">
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/change-password" element={<ChangePassword />} />
             
             {/* Admin/Manager Routes */}
