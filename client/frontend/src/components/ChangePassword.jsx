@@ -17,7 +17,7 @@ const ChangePassword = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const userId = user?._id || searchParams.get('userId');
@@ -69,9 +69,15 @@ const ChangePassword = () => {
         });
         setToast({
           show: true,
-          message: 'Password changed successfully',
+          message: 'Password changed successfully. Redirecting to login...',
           type: 'success'
         });
+        
+        // Log the user out after changing password
+        setTimeout(() => {
+          logout();
+          navigate('/login');
+        }, 2000);
       }
     } catch (error) {
       setToast({

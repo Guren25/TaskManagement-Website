@@ -206,6 +206,8 @@ const AdminDashboard = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const [isUserManager, setIsUserManager] = useState(false);
   const [metrics, setMetrics] = useState({
     totalProjects: 0,
     pending: 0,
@@ -229,6 +231,11 @@ const AdminDashboard = () => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (userData) {
       setCurrentUser(userData);
+      
+      // Check user role to determine permissions
+      const userRole = userData.role?.toLowerCase();
+      setIsUserAdmin(userRole === 'admin' || userRole === 'administrator');
+      setIsUserManager(userRole === 'manager' || userRole === 'project manager');
     }
   }, []);
 
@@ -708,6 +715,9 @@ const AdminDashboard = () => {
     setFilteredTasks(sorted);
   };
 
+  // Show edit button only if user is admin or manager
+  const canEditTask = isUserAdmin || isUserManager;
+
   return (
     <div className="admin-layout">
       <SideNav />
@@ -876,16 +886,18 @@ const AdminDashboard = () => {
               <div className="task-modal-header">
                 <h2 className="task-modal-title">{selectedTask.TaskName}</h2>
                 <div className="task-modal-actions">
-                  <button 
-                    className="task-edit-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTask(null);
-                      handleEditTask(selectedTask);
-                    }}
-                  >
-                    Edit
-                  </button>
+                  {canEditTask && (
+                    <button 
+                      className="task-edit-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTask(null);
+                        handleEditTask(selectedTask);
+                      }}
+                    >
+                      {isUserAdmin ? 'Edit' : 'Manage Subtasks'}
+                    </button>
+                  )}
                   <button className="task-modal-close" onClick={() => setSelectedTask(null)}>×</button>
                 </div>
               </div>

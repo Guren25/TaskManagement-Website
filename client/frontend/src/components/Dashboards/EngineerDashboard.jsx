@@ -160,6 +160,35 @@ const LogEntry = ({ log }) => {
       </div>
     );
   }
+  
+  // Special handling for subtask status changes
+  if (log.changeType === 'SubtaskStatusUpdated' || log.subtaskName) {
+    return (
+      <div className="log-entry">
+        <div className="log-title">
+          <span className="task-name">
+            {log.subtaskName ? `Subtask: ${log.subtaskName}` : 'Subtask'} 
+            {log.taskName ? ` (in ${log.taskName})` : ''}
+          </span>
+          <span className={`log-badge ${log.changeType?.toLowerCase() || 'updated'}`}>
+            {log.changeType?.toLowerCase() || 'status changed'}
+          </span>
+        </div>
+        
+        {log.oldValue && log.newValue && (
+          <div className="status-change">
+            <span className="old-status">{log.oldValue.Status || log.oldStatus}</span>
+            <span className="new-status">{log.newValue.Status || log.newStatus}</span>
+          </div>
+        )}
+        
+        <div className="log-footer">
+          <span className="log-user">{log.changedBy}</span>
+          <span className="log-time">{getTimeAgo(log.timestamp)}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="log-entry">
@@ -330,14 +359,46 @@ const EngineerDashboard = () => {
       const response = await axios.get('/api/activity-logs/recent');
       const currentUserFullName = currentUser ? 
         `${currentUser.firstname} ${currentUser.lastname}` : '';
+      const currentUserEmail = currentUser?.email;
       
       const filteredLogs = response.data.filter(log => {
+        // For due date notifications
         if (log.newValue?.type === 'due_date_notification') {
           const taskAssignedTo = log.taskAssignedTo || log.newValue.taskAssignedTo;
           return taskAssignedTo === currentUserFullName;
         }
+        
+        // For changes made by this user
+        if (log.changedBy === currentUserFullName || log.changedBy === currentUserEmail) {
+          return true;
+        }
+        
+        // For task assignments to this user
         const taskAssignedTo = log.newValue?.AssignedTo || log.oldValue?.AssignedTo;
-        return taskAssignedTo === currentUserFullName;
+        if (taskAssignedTo === currentUserFullName || taskAssignedTo === currentUserEmail) {
+          return true;
+        }
+        
+        // For subtask assignments to this user
+        // Check if the log might be related to a subtask update
+        if (log.newValue?.subtask || log.oldValue?.subtask) {
+          // If the log contains subtask data, check if any are assigned to this user
+          const subtasksNew = log.newValue?.subtask || [];
+          const subtasksOld = log.oldValue?.subtask || [];
+          
+          // Check both old and new subtasks
+          return [...subtasksNew, ...subtasksOld].some(
+            sub => sub.AssignedTo === currentUserFullName || sub.AssignedTo === currentUserEmail
+          );
+        }
+        
+        // For direct subtask status updates
+        if (log.changeType === 'SubtaskStatusUpdated') {
+          return log.subtaskAssignedTo === currentUserFullName || 
+                 log.subtaskAssignedTo === currentUserEmail;
+        }
+        
+        return false;
       });
       
       setActivityLog(filteredLogs);
@@ -760,9 +821,17 @@ const EngineerDashboard = () => {
 
   const updateSubtaskStatus = async (taskId, subtask, newStatus) => {
     try {
+      const changedBy = currentUser ? 
+        `${currentUser.firstname} ${currentUser.lastname}` : 'Unknown';
+      
       const response = await axios.patch(`/api/tasks/${taskId}/subtask/${subtask._id}/status`, {
         Status: newStatus,
-        ChangedBy: currentUser ? `${currentUser.firstname} ${currentUser.lastname}` : 'Unknown'
+        ChangedBy: changedBy,
+        subtaskName: subtask.TaskName,
+        oldStatus: subtask.Status,
+        newStatus: newStatus,
+        changeType: 'SubtaskStatusUpdated',
+        timestamp: new Date().toISOString()
       });
 
       if (response.data) {
@@ -780,6 +849,9 @@ const EngineerDashboard = () => {
         }
 
         setConfirmationModal({ isOpen: false, message: '', onConfirm: null });
+        
+        // Fetch updated activity logs
+        fetchActivityLog();
       }
     } catch (error) {
       console.error('Error updating subtask status:', error);

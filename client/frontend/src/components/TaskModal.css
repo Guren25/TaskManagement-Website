@@ -75,7 +75,7 @@
 }
 
 .admin-task-form-group {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   padding: 0 0.25rem;
 }
 
@@ -245,11 +245,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .subtask-form-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr auto;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.subtask-form-row .admin-task-form-select {
+  flex: 1;
+  min-width: 0;
 }
 
 .add-subtask-btn {
@@ -409,4 +413,39 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .subtasks-column::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 3px;
+}
+
+/* Styles for disabled form elements */
+.admin-task-form-input:disabled,
+.admin-task-form-textarea:disabled,
+.admin-task-form-select:disabled {
+  background-color: #f7f7f7;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.8;
+  border-color: #ddd;
+}
+
+/* Add a subtle visual indicator for read-only fields */
+.main-task-column.readonly {
+  position: relative;
+}
+
+.main-task-column.readonly::before {
+  content: "Read Only";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #f1f1f1;
+  color: #666;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+/* Modify the column title for managers */
+.column-title.readonly {
+  color: #666;
 } 
