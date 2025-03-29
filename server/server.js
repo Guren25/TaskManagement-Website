@@ -14,7 +14,7 @@ const socketIo = require('socket.io');
 // Configure CORS to allow requests from the frontend
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000', '*'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true
 }));
 
@@ -94,7 +94,7 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: ['http://localhost:5173', 'http://localhost:3000', '*'],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Authorization", "X-Requested-With", "Content-Type"]
   },

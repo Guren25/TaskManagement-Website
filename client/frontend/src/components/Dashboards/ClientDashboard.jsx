@@ -530,12 +530,32 @@ const ClientDashboard = () => {
     }));
   };
 
+  const formatLabel = (date, range) => {
+    const d = new Date(date);
+    if (range === 1) {
+      return format(d, 'h:mm a');
+    } else if (range < 14) {
+      return format(d, 'MM/dd');
+    } else {
+      return format(d, 'MM/dd');
+    }
+  };
+
   const prepareChartData = (range = 30) => {
     const lastNDays = [...Array(range)].map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       return d.toISOString().split('T')[0];
     }).reverse();
+
+    // For 24 hour view, we need hours not days
+    const timeData = range === 1 
+      ? [...Array(24)].map((_, i) => {
+          const d = new Date();
+          d.setHours(d.getHours() - 23 + i);
+          return d.toISOString();
+        })
+      : lastNDays;
 
     const completedTasksByDate = {};
     const createdTasksByDate = {};
@@ -544,71 +564,150 @@ const ClientDashboard = () => {
     tasks.forEach(task => {
       // For clients, all tasks in the tasks array are already filtered to be the client's tasks
       // No need to filter by AssignedTo for clients
-      const creationDate = new Date(task.CreatedAt || task.timestamp || Date.now()).toISOString().split('T')[0];
+      const getTimeKey = (timestamp) => {
+        if (!timestamp) return null;
+        
+        const d = new Date(timestamp);
+        if (range === 1) {
+          // For 24 hour view, use hourly buckets
+          const hourDate = new Date(d);
+          hourDate.setMinutes(0, 0, 0);
+          return hourDate.toISOString();
+        } else {
+          // For multi-day view, use daily buckets
+          return d.toISOString().split('T')[0];
+        }
+      };
+      
+      const creationDate = getTimeKey(task.CreatedAt || task.timestamp);
       
       // Count this task as created
-      createdTasksByDate[creationDate] = (createdTasksByDate[creationDate] || 0) + 1;
+      if (creationDate) {
+        createdTasksByDate[creationDate] = (createdTasksByDate[creationDate] || 0) + 1;
+      }
       
       // If task is completed, count it
       if (task.Status === 'completed') {
-        const completionDate = new Date(task.UpdatedAt || task.timestamp || Date.now()).toISOString().split('T')[0];
-        completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + 1;
+        const completionDate = getTimeKey(task.UpdatedAt || task.timestamp);
+        if (completionDate) {
+          completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + 1;
+        }
       }
 
       // Count subtasks
-      if (task.subtask && task.subtask.length > 0) {
+      if (task.subtask && task.subtask.length > 0 && creationDate) {
         subtasksByDate[creationDate] = (subtasksByDate[creationDate] || 0) + task.subtask.length;
         
         // Count completed subtasks
         const completedSubtasks = task.subtask.filter(sub => sub.Status === 'completed').length;
         if (completedSubtasks > 0) {
-          const completionDate = new Date(task.UpdatedAt || task.timestamp || Date.now()).toISOString().split('T')[0];
-          completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + completedSubtasks;
+          const completionDate = getTimeKey(task.UpdatedAt || task.timestamp);
+          if (completionDate) {
+            completedTasksByDate[completionDate] = (completedTasksByDate[completionDate] || 0) + completedSubtasks;
+          }
         }
       }
     });
 
+    // Pre-populate all time buckets to ensure continuous display
+    const populatedTimeData = {};
+    timeData.forEach(timePoint => {
+      let key;
+      if (range === 1) {
+        const hourDate = new Date(timePoint);
+        hourDate.setMinutes(0, 0, 0);
+        key = hourDate.toISOString();
+      } else {
+        key = timePoint;
+      }
+      
+      populatedTimeData[key] = {
+        completed: completedTasksByDate[key] || 0,
+        created: createdTasksByDate[key] || 0,
+        subtasks: subtasksByDate[key] || 0
+      };
+    });
+
     return {
-      labels: lastNDays.map(date => {
+      labels: timeData.map(date => {
         const d = new Date(date);
-        return `${d.getMonth() + 1}/${d.getDate()}`;
+        return formatLabel(d, range);
       }),
       datasets: [
         {
           label: 'Completed Tasks',
-          data: lastNDays.map(date => completedTasksByDate[date] || 0),
-          borderColor: '#34C759',
-          backgroundColor: 'rgba(52, 199, 89, 0.12)',
-          borderWidth: 2.5,
-          pointBackgroundColor: '#34C759',
+          data: timeData.map(date => {
+            let key;
+            if (range === 1) {
+              const hourDate = new Date(date);
+              hourDate.setMinutes(0, 0, 0);
+              key = hourDate.toISOString();
+            } else {
+              key = date;
+            }
+            return populatedTimeData[key]?.completed || 0;
+          }),
+          borderColor: '#2e7d32', // Deep forest green
+          backgroundColor: 'rgba(46, 125, 50, 0.1)',
+          borderWidth: 2,
+          pointBackgroundColor: '#2e7d32',
           pointBorderColor: '#FFFFFF',
           pointBorderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 6,
           fill: true,
-          tension: 0.4
+          tension: 0.4,
+          cubicInterpolationMode: 'monotone'
         },
         {
           label: 'New Tasks',
-          data: lastNDays.map(date => createdTasksByDate[date] || 0),
-          borderColor: '#007AFF',
-          backgroundColor: 'rgba(0, 122, 255, 0.08)',
-          borderWidth: 2.5,
-          pointBackgroundColor: '#007AFF',
+          data: timeData.map(date => {
+            let key;
+            if (range === 1) {
+              const hourDate = new Date(date);
+              hourDate.setMinutes(0, 0, 0);
+              key = hourDate.toISOString();
+            } else {
+              key = date;
+            }
+            return populatedTimeData[key]?.created || 0;
+          }),
+          borderColor: '#7b1fa2', // Purple (complementary to green)
+          backgroundColor: 'rgba(123, 31, 162, 0.08)',
+          borderWidth: 2,
+          pointBackgroundColor: '#7b1fa2',
           pointBorderColor: '#FFFFFF',
           pointBorderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 6,
           fill: true,
-          tension: 0.4
+          tension: 0.4,
+          cubicInterpolationMode: 'monotone'
         },
         {
           label: 'Subtasks',
-          data: lastNDays.map(date => subtasksByDate[date] || 0),
-          borderColor: '#FF9500',
-          backgroundColor: 'rgba(255, 149, 0, 0.08)',
-          borderWidth: 2.5,
-          pointBackgroundColor: '#FF9500',
+          data: timeData.map(date => {
+            let key;
+            if (range === 1) {
+              const hourDate = new Date(date);
+              hourDate.setMinutes(0, 0, 0);
+              key = hourDate.toISOString();
+            } else {
+              key = date;
+            }
+            return populatedTimeData[key]?.subtasks || 0;
+          }),
+          borderColor: '#0288d1', // Blue (triadic with green and purple)
+          backgroundColor: 'rgba(2, 136, 209, 0.08)',
+          borderWidth: 2,
+          pointBackgroundColor: '#0288d1',
           pointBorderColor: '#FFFFFF',
           pointBorderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 6,
           fill: true,
-          tension: 0.4
+          tension: 0.4,
+          cubicInterpolationMode: 'monotone'
         }
       ]
     };
@@ -910,6 +1009,7 @@ const ClientDashboard = () => {
                     onChange={(e) => setTimeRange(Number(e.target.value))}
                     className="range-select"
                   >
+                    <option value={1}>Last 24 hours</option>
                     <option value={7}>Last 7 days</option>
                     <option value={14}>Last 14 days</option>
                     <option value={30}>Last 30 days</option>
@@ -968,24 +1068,6 @@ const ClientDashboard = () => {
                     <option value="desc">Newest First</option>
                     <option value="asc">Oldest First</option>
                   </select>
-
-                  {Object.values(filters).some(Boolean) && (
-                    <button
-                      className="filter-clear-btn"
-                      onClick={() => {
-                        setFilters({
-                          status: '',
-                          priority: '',
-                          location: '',
-                          assignedTo: '',
-                          startDate: ''
-                        });
-                        setFilteredTasks(tasks);
-                      }}
-                    >
-                      Clear
-                    </button>
-                  )}
                 </div>
               </div>
 
