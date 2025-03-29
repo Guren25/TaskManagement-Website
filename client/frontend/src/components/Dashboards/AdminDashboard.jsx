@@ -557,27 +557,8 @@ const AdminDashboard = () => {
       return updatedTasks;
     });
     
-    const newLog = {
-      _id: `task-created-${newTask._id}`,
-      type: 'task-created',
-      taskName: newTask.TaskName,
-      user: taskWithNames.AssignedBy,
-      timestamp: new Date().toISOString(),
-      message: `Task "${newTask.TaskName}" created by ${taskWithNames.AssignedBy}`
-    };
-    
-    const subtaskLogs = newTask.subtask && newTask.subtask.length > 0 ? 
-      newTask.subtask.map((subtask, index) => ({
-        _id: `subtask-added-${newTask._id}-${index}`,
-        type: 'subtask-added',
-        taskName: newTask.TaskName,
-        subtaskName: subtask.TaskName,
-        user: taskWithNames.AssignedBy,
-        timestamp: new Date().toISOString(),
-        message: `Subtask "${subtask.TaskName}" added to "${newTask.TaskName}" by ${taskWithNames.AssignedBy}`
-      })) : [];
-    
-    setActivityLog([newLog, ...subtaskLogs, ...activityLog]);
+    // Fetch the activity logs from server instead of creating client-side logs
+    fetchActivityLog();
   };
 
   const getStatusBadgeClass = (status) => {

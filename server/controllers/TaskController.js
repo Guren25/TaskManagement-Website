@@ -29,7 +29,7 @@ const checkDueDates = async () => {
         taskStatus: task.Status
       });
 
-      if (daysUntilDue < 0 || daysUntilDue === 7 || daysUntilDue === 3 || daysUntilDue === 1) {
+      if (daysUntilDue <= 0 || daysUntilDue === 7 || daysUntilDue === 3 || daysUntilDue === 1) {
         console.log(`Sending notification for task "${task.TaskName}" (${daysUntilDue} days)`);
         
         const notification = new ActivityLog({
@@ -41,7 +41,9 @@ const checkDueDates = async () => {
             type: 'due_date_notification',
             message: daysUntilDue < 0 
               ? `Task "${task.TaskName}" is overdue by ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) > 1 ? 's' : ''}`
-              : `Task "${task.TaskName}" is due in ${daysUntilDue} day${daysUntilDue > 1 ? 's' : ''}`,
+              : daysUntilDue === 0
+                ? `Task "${task.TaskName}" is due today!`
+                : `Task "${task.TaskName}" is due in ${daysUntilDue} day${daysUntilDue > 1 ? 's' : ''}`,
             daysRemaining: daysUntilDue
           },
           timestamp: new Date()
