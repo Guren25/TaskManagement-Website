@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './TaskModal.css';
 
-const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
+const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [taskData, setTaskData] = useState({
     TaskName: '',
@@ -23,14 +23,53 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [errors, setErrors] = useState({});
   const [showSubtaskSection, setShowSubtaskSection] = useState(false);
   const [subtasks, setSubtasks] = useState([]);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchEngineers();
       fetchClients();
       getCurrentUser();
+      
+      if (existingTask) {
+        setIsEditMode(true);
+        // Format dates to YYYY-MM-DD for input fields
+        const formattedStartDate = new Date(existingTask.StartDate).toISOString().split('T')[0];
+        const formattedEndDate = new Date(existingTask.EndDate).toISOString().split('T')[0];
+        
+        setTaskData({
+          ...existingTask,
+          StartDate: formattedStartDate,
+          EndDate: formattedEndDate
+        });
+        
+        if (existingTask.subtask && existingTask.subtask.length > 0) {
+          setSubtasks(existingTask.subtask);
+        }
+      } else {
+        setIsEditMode(false);
+        resetForm();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, existingTask]);
+
+  const resetForm = () => {
+    setTaskData({
+      TaskName: '',
+      Description: '',
+      Location: '',
+      Priority: 'medium',
+      Status: 'not-started',
+      AssignedTo: '',
+      AssignedBy: '', 
+      StartDate: '',
+      EndDate: '',
+      subtask: [],
+      Client: ''
+    });
+    setSubtasks([]);
+    setErrors({});
+  };
 
   useEffect(() => {
     console.log('Current taskData:', taskData);
@@ -41,17 +80,21 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (userData) {
       setCurrentUser(userData);
-      const fullName = userData.middlename 
-        ? `${userData.firstname} ${userData.middlename} ${userData.lastname}`
-        : `${userData.firstname} ${userData.lastname}`;
-        
-      setTaskData(prev => ({
-        ...prev,
-        AssignedTo: userData.email,
-        AssignedToName: fullName,
-        AssignedBy: userData.email,
-        AssignedByName: fullName
-      }));
+      
+      // Only set default values if we're not in edit mode
+      if (!existingTask) {
+        const fullName = userData.middlename 
+          ? `${userData.firstname} ${userData.middlename} ${userData.lastname}`
+          : `${userData.firstname} ${userData.lastname}`;
+          
+        setTaskData(prev => ({
+          ...prev,
+          AssignedTo: userData.email,
+          AssignedToName: fullName,
+          AssignedBy: userData.email,
+          AssignedByName: fullName
+        }));
+      }
     }
   };
 
@@ -113,59 +156,68 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         Description: taskData.Description,
         Location: taskData.Location,
         Priority: taskData.Priority,
-        Status: 'not-started',
+        Status: taskData.Status || 'not-started',
         AssignedTo: taskData.AssignedTo,
         AssignedBy: taskData.AssignedBy,
         Client: taskData.Client,
         StartDate: formattedStartDate,
         EndDate: formattedEndDate,
         subtask: subtasks.map(subtask => ({
+          ...subtask,
           TaskName: subtask.TaskName,
           Priority: subtask.Priority || 'medium',
           AssignedTo: subtask.AssignedTo,
-          Status: 'not-started'
+          Status: subtask.Status || 'not-started'
         })).filter(subtask => subtask.TaskName && subtask.AssignedTo) 
       };
       console.log('Submitting task data:', taskDataToSubmit);
 
-      const response = await axios.post('/api/tasks', taskDataToSubmit)
-        .catch(error => {
-          console.error('Detailed error:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            data: taskDataToSubmit
+      let response;
+      if (isEditMode) {
+        // Add ChangedBy field for activity log
+        taskDataToSubmit.ChangedBy = currentUser?.email || taskData.AssignedBy;
+        
+        response = await axios.put(`/api/tasks/${taskData._id}`, taskDataToSubmit)
+          .catch(error => {
+            console.error('Detailed error:', {
+              message: error.message,
+              response: error.response?.data,
+              status: error.response?.status,
+              data: taskDataToSubmit
+            });
+            throw error;
           });
-          throw error;
-        });
-      
-      if (response.data) {
-        onTaskCreated(response.data);
-        onClose();
-      
-        setTaskData({
-          TaskName: '',
-          Description: '',
-          Location: '',
-          Priority: 'medium',
-          Status: 'not-started',
-          AssignedTo: '',
-          AssignedBy: currentUser?.email || '',
-          StartDate: '',
-          EndDate: '',
-          subtask: [],
-          Client: ''
-        });
-        setSubtasks([]);
-        setErrors({});
+          
+        if (response.data) {
+          onTaskUpdated(response.data);
+          onClose();
+          resetForm();
+        }
+      } else {
+        response = await axios.post('/api/tasks', taskDataToSubmit)
+          .catch(error => {
+            console.error('Detailed error:', {
+              message: error.message,
+              response: error.response?.data,
+              status: error.response?.status,
+              data: taskDataToSubmit
+            });
+            throw error;
+          });
+        
+        if (response.data) {
+          onTaskCreated(response.data);
+          onClose();
+          resetForm();
+        }
       }
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error('Error with task:', error);
       if (error.response) {
         console.error('Server error response:', error.response.data);
       }
       setErrors({ 
-        submit: error.response?.data?.message || 'Failed to create task. Please try again.' 
+        submit: error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} task. Please try again.` 
       });
     } finally {
       setIsSubmitting(false);
@@ -194,7 +246,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     <div className="admin-task-modal-overlay">
       <div className="admin-task-modal">
         <div className="admin-task-modal-header">
-          <h2 className="admin-task-modal-title">Create New Task</h2>
+          <h2 className="admin-task-modal-title">{isEditMode ? 'Edit Task' : 'Create New Task'}</h2>
           <button className="admin-task-modal-close" onClick={onClose}>&times;</button>
         </div>
 
@@ -252,6 +304,21 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                 </div>
 
                 <div className="admin-task-form-group">
+                  <label className="admin-task-form-label">Status</label>
+                  <select
+                    className={`admin-task-form-select ${errors.Status ? 'error' : ''}`}
+                    value={taskData.Status}
+                    onChange={(e) => setTaskData({ ...taskData, Status: e.target.value })}
+                  >
+                    <option value="not-started">Not Started</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="admin-task-form-row">
+                <div className="admin-task-form-group">
                   <label className="admin-task-form-label">Assigned To</label>
                   <select
                     className={`admin-task-form-select ${errors.AssignedTo ? 'error' : ''}`}
@@ -303,7 +370,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                     className={`admin-task-form-input ${errors.AssignedBy ? 'error' : ''}`}
                     value={taskData.AssignedBy}
                     onChange={(e) => setTaskData({ ...taskData, AssignedBy: e.target.value })}
-                    readOnly 
+                    readOnly={isEditMode} 
                   />
                 </div>
               </div>
@@ -375,21 +442,34 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                       </select>
                       <select
                         className="admin-task-form-select"
-                        value={subtask.AssignedTo}
+                        value={subtask.Status || 'not-started'}
                         onChange={(e) => {
                           const newSubtasks = [...subtasks];
-                          newSubtasks[index].AssignedTo = e.target.value;
+                          newSubtasks[index].Status = e.target.value;
                           setSubtasks(newSubtasks);
                         }}
                       >
-                        <option value="">Select Engineer</option>
-                        {engineers.map((engineer) => (
-                          <option key={engineer.email} value={engineer.email}>
-                            {engineer.fullName}
-                          </option>
-                        ))}
+                        <option value="not-started">Not Started</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
                       </select>
                     </div>
+                    <select
+                      className="admin-task-form-select"
+                      value={subtask.AssignedTo}
+                      onChange={(e) => {
+                        const newSubtasks = [...subtasks];
+                        newSubtasks[index].AssignedTo = e.target.value;
+                        setSubtasks(newSubtasks);
+                      }}
+                    >
+                      <option value="">Select Engineer</option>
+                      {engineers.map((engineer) => (
+                        <option key={engineer.email} value={engineer.email}>
+                          {engineer.fullName}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 ))}
                 <button 
@@ -408,7 +488,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               Cancel
             </button>
             <button type="submit" className="admin-task-btn admin-task-btn-submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Task'}
+              {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Task' : 'Create Task')}
             </button>
           </div>
         </form>

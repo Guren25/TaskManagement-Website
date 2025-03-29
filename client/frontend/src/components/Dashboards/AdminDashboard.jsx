@@ -204,6 +204,7 @@ const AdminDashboard = () => {
   const [expandedFilters, setExpandedFilters] = useState(false);
   const [expandedLogs, setExpandedLogs] = useState({});
   const [selectedTask, setSelectedTask] = useState(null);
+  const [taskToEdit, setTaskToEdit] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [metrics, setMetrics] = useState({
     totalProjects: 0,
@@ -561,6 +562,30 @@ const AdminDashboard = () => {
     fetchActivityLog();
   };
 
+  const handleTaskUpdated = (updatedTask) => {
+    setTasks(prevTasks => {
+      const updatedTasks = prevTasks.map(task => 
+        task._id === updatedTask._id ? updatedTask : task
+      );
+      setFilteredTasks(updatedTasks);
+      setMetrics(calculateMetrics(updatedTasks));
+      return updatedTasks;
+    });
+    
+    // Fetch updated activity logs
+    fetchActivityLog();
+  };
+
+  const handleEditTask = (task) => {
+    setTaskToEdit(task);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTaskToEdit(null);
+  };
+
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'completed': return 'status-badge completed';
@@ -850,7 +875,19 @@ const AdminDashboard = () => {
             <div className="task-modal" onClick={e => e.stopPropagation()}>
               <div className="task-modal-header">
                 <h2 className="task-modal-title">{selectedTask.TaskName}</h2>
-                <button className="task-modal-close" onClick={() => setSelectedTask(null)}>×</button>
+                <div className="task-modal-actions">
+                  <button 
+                    className="task-edit-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTask(null);
+                      handleEditTask(selectedTask);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button className="task-modal-close" onClick={() => setSelectedTask(null)}>×</button>
+                </div>
               </div>
               <div className="task-modal-content">
                 <div className="task-modal-section">
@@ -937,11 +974,16 @@ const AdminDashboard = () => {
         {isModalOpen && (
           <TaskModal
             isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
+            onClose={handleCloseModal}
             onTaskCreated={(newTask) => {
               handleTaskCreated(newTask);
               setIsModalOpen(false);
             }}
+            onTaskUpdated={(updatedTask) => {
+              handleTaskUpdated(updatedTask);
+              setIsModalOpen(false);
+            }}
+            existingTask={taskToEdit}
           />
         )}
       </div>
