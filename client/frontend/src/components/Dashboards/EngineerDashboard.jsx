@@ -17,6 +17,7 @@ import './Dashboard.css';
 import { format } from 'date-fns';
 import SideNav from '../SideNav';
 import ConfirmationModal from '../ConfirmationModal';
+import { subscribeToTaskUpdates, unsubscribeFromTaskUpdates } from '../../services/socket';
 
 ChartJS.register(
   CategoryScale,
@@ -252,6 +253,7 @@ const EngineerDashboard = () => {
     onConfirm: null,
     subtaskData: null
   });
+  const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -302,6 +304,109 @@ const EngineerDashboard = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      setChartData(prepareChartData(timeRange));
+    }
+  }, [tasks, timeRange]);
+
+  useEffect(() => {
+    fetchTasks().then(() => fetchActivityLog());
+    
+    // Subscribe to real-time task updates
+    const handleTaskUpdate = (type, data) => {
+      console.log(`Real-time ${type} task:`, data);
+      
+      // For engineer dashboard, only process tasks assigned to this engineer
+      const currentUserFullName = currentUser ? 
+        `${currentUser.firstname} ${currentUser.lastname}` : '';
+      const currentUserEmail = currentUser?.email;
+      
+      // Check if the task or any of its subtasks are assigned to this engineer
+      const isTaskForEngineer = (task) => {
+        if (task.AssignedTo === currentUserFullName || task.AssignedTo === currentUserEmail) {
+          return true;
+        }
+        
+        if (task.subtask && task.subtask.length > 0) {
+          return task.subtask.some(sub => 
+            sub.AssignedTo === currentUserFullName || sub.AssignedTo === currentUserEmail
+          );
+        }
+        
+        return false;
+      };
+      
+      if (type === 'created' && isTaskForEngineer(data)) {
+        setTasks(prevTasks => {
+          const updatedTasks = [...prevTasks, data];
+          setFilteredTasks(updatedTasks);
+          setMetrics(calculateMetrics(updatedTasks));
+          setChartData(prepareChartData(timeRange));
+          return updatedTasks;
+        });
+      } 
+      else if (type === 'updated') {
+        // Check if this task was or is now assigned to this engineer
+        const wasAssigned = tasks.some(task => task._id === data._id);
+        
+        if (wasAssigned || isTaskForEngineer(data)) {
+          setTasks(prevTasks => {
+            // If wasAssigned but no longer is, filter it out
+            if (wasAssigned && !isTaskForEngineer(data)) {
+              const updatedTasks = prevTasks.filter(task => task._id !== data._id);
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            }
+            
+            // If wasn't assigned but now is, add it
+            if (!wasAssigned && isTaskForEngineer(data)) {
+              const updatedTasks = [...prevTasks, data];
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            }
+            
+            // Otherwise just update the existing task
+            const updatedTasks = prevTasks.map(task => 
+              task._id === data._id ? data : task
+            );
+            setFilteredTasks(updatedTasks);
+            setMetrics(calculateMetrics(updatedTasks));
+            setChartData(prepareChartData(timeRange));
+            return updatedTasks;
+          });
+        }
+      }
+      else if (type === 'deleted') {
+        setTasks(prevTasks => {
+          // Only remove if it exists in the current task list
+          if (prevTasks.some(task => task._id === data._id)) {
+            const updatedTasks = prevTasks.filter(task => task._id !== data._id);
+            setFilteredTasks(updatedTasks);
+            setMetrics(calculateMetrics(updatedTasks));
+            setChartData(prepareChartData(timeRange));
+            return updatedTasks;
+          }
+          return prevTasks;
+        });
+      }
+      
+      // Refresh activity logs
+      fetchActivityLog();
+    };
+    
+    subscribeToTaskUpdates(handleTaskUpdate);
+    
+    // Cleanup on component unmount
+    return () => {
+      unsubscribeFromTaskUpdates();
     };
   }, []);
 
@@ -679,6 +784,48 @@ const EngineerDashboard = () => {
     setActivityLog([newLog, ...subtaskLogs, ...activityLog]);
   };
 
+  const handleTaskUpdated = (updatedTask) => {
+    setTasks(prevTasks => {
+      const updatedTasks = prevTasks.map(task => 
+        task._id === updatedTask._id ? updatedTask : task
+      );
+      setFilteredTasks(updatedTasks);
+      setMetrics(calculateMetrics(updatedTasks));
+      // Update chart data immediately
+      setChartData(prepareChartData(timeRange));
+      return updatedTasks;
+    });
+    
+    // Fetch updated activity logs
+    fetchActivityLog();
+  };
+
+  const handleUpdateStatus = async (taskId, newStatus) => {
+    try {
+      await axios.patch(`/api/tasks/${taskId}/status`, { 
+        status: newStatus,
+        updatedBy: `${currentUser.firstname} ${currentUser.lastname}`
+      });
+      
+      setTasks(prevTasks => {
+        const updatedTasks = prevTasks.map(task => 
+          task._id === taskId ? { ...task, Status: newStatus } : task
+        );
+        setFilteredTasks(updatedTasks);
+        setMetrics(calculateMetrics(updatedTasks));
+        // Update chart data immediately
+        setChartData(prepareChartData(timeRange));
+        return updatedTasks;
+      });
+      
+      // Fetch updated activity logs
+      fetchActivityLog();
+      
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
+  };
+
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'completed': return 'status-badge completed';
@@ -904,7 +1051,7 @@ const EngineerDashboard = () => {
                 </div>
               </div>
               <div className="chart-container">
-                <Line data={prepareChartData(timeRange)} options={chartOptions} />
+                <Line data={chartData || prepareChartData(timeRange)} options={chartOptions} />
               </div>
             </div>
 

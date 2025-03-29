@@ -15,7 +15,8 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
     StartDate: '',
     EndDate: '',
     subtask: [],
-    Client: ''
+    Client: '',
+    ClientName: ''
   });
   const [engineers, setEngineers] = useState([]);
   const [clients, setClients] = useState([]);
@@ -88,11 +89,14 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
       Priority: 'medium',
       Status: 'not-started',
       AssignedTo: '',
-      AssignedBy: '', 
+      AssignedToName: '',
+      AssignedBy: currentUser?.email || '',
+      AssignedByName: currentUser ? `${currentUser.firstname} ${currentUser.lastname}` : '',
       StartDate: '',
       EndDate: '',
       subtask: [],
-      Client: ''
+      Client: '',
+      ClientName: ''
     });
     setSubtasks([]);
     setErrors({});
@@ -229,21 +233,14 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
         ? `${userData.firstname} ${userData.middlename} ${userData.lastname}`
         : `${userData.firstname} ${userData.lastname}`;
       
-      // Always set AssignedBy to current user
+      // Always set AssignedBy to current user - ensure it's set immediately
       setTaskData(prev => ({
         ...prev,
-        AssignedBy: userData.email,
-        AssignedByName: fullName
+        AssignedBy: userData.email || '',
+        AssignedByName: fullName || ''
       }));
-      
-      // Only set default AssignedTo if we're not in edit mode
-      if (!existingTask) {
-        setTaskData(prev => ({
-          ...prev,
-          AssignedTo: userData.email,
-          AssignedToName: fullName
-        }));
-      }
+    } else {
+      console.error('No user data found in localStorage');
     }
   };
 
@@ -279,7 +276,20 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
     if (!taskData.Location) newErrors.Location = "Location is required";
     if (!taskData.AssignedTo) newErrors.AssignedTo = "Assignee is required";
     if (!taskData.Client) newErrors.Client = "Client is required";
-    if (!taskData.AssignedBy) newErrors.AssignedBy = "Assigner is required";
+    
+    // Use currentUser as fallback for AssignedBy if it's missing
+    if (!taskData.AssignedBy && !currentUser?.email) {
+      newErrors.AssignedBy = "Assigner is required";
+    } else if (!taskData.AssignedBy && currentUser?.email) {
+      // Auto-fix the AssignedBy field
+      console.log('Auto-fixing missing AssignedBy with current user data');
+      setTaskData(prev => ({
+        ...prev,
+        AssignedBy: currentUser.email,
+        AssignedByName: `${currentUser.firstname} ${currentUser.lastname}`
+      }));
+    }
+    
     if (!taskData.StartDate) newErrors.StartDate = "Start date is required";
     if (!taskData.EndDate) newErrors.EndDate = "End date is required";
     
@@ -289,6 +299,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    console.log('Submit button clicked, beginning form submission...');
 
     try {
       // For non-admin users in edit mode, only update subtasks
@@ -325,6 +336,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
           });
           
         if (response.data) {
+          console.log('Task updated successfully:', response.data);
           onTaskUpdated(response.data);
           onClose();
           resetForm();
@@ -334,24 +346,42 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
         return;
       }
       
+      // Ensure user data is set properly before validation
+      if (currentUser && !taskData.AssignedBy) {
+        console.log('Setting AssignedBy field before validation');
+        setTaskData(prev => ({
+          ...prev,
+          AssignedBy: currentUser.email,
+          AssignedByName: `${currentUser.firstname} ${currentUser.lastname}`
+        }));
+      }
+      
       const validationErrors = validate();
       if (Object.keys(validationErrors).length > 0) {
+        console.log('Validation errors:', validationErrors);
         setErrors(validationErrors);
         setIsSubmitting(false);
         return;
       }
 
-      const formattedStartDate = new Date(taskData.StartDate).toISOString();
-      const formattedEndDate = new Date(taskData.EndDate).toISOString();
+      // Complete form data with current user info if missing
+      const completeTaskData = {
+        ...taskData,
+        AssignedBy: taskData.AssignedBy || (currentUser ? currentUser.email : ''),
+        AssignedByName: taskData.AssignedByName || (currentUser ? `${currentUser.firstname} ${currentUser.lastname}` : '')
+      };
+
+      const formattedStartDate = new Date(completeTaskData.StartDate).toISOString();
+      const formattedEndDate = new Date(completeTaskData.EndDate).toISOString();
       const taskDataToSubmit = {
-        TaskName: taskData.TaskName,
-        Description: taskData.Description,
-        Location: taskData.Location,
-        Priority: taskData.Priority,
-        Status: taskData.Status || 'not-started',
-        AssignedTo: taskData.AssignedTo,
-        AssignedBy: taskData.AssignedBy,
-        Client: taskData.Client,
+        TaskName: completeTaskData.TaskName,
+        Description: completeTaskData.Description,
+        Location: completeTaskData.Location,
+        Priority: completeTaskData.Priority,
+        Status: completeTaskData.Status || 'not-started',
+        AssignedTo: completeTaskData.AssignedTo,
+        AssignedBy: completeTaskData.AssignedBy,
+        Client: completeTaskData.Client,
         StartDate: formattedStartDate,
         EndDate: formattedEndDate,
         subtask: subtasks.map(subtask => ({
@@ -369,6 +399,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
         // Add ChangedBy field for activity log
         taskDataToSubmit.ChangedBy = currentUser?.email || taskData.AssignedBy;
         
+        console.log('Sending PUT request to update task...');
         response = await axios.put(`/api/tasks/${taskData._id}`, taskDataToSubmit)
           .catch(error => {
             console.error('Detailed error:', {
@@ -381,26 +412,41 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
           });
           
         if (response.data) {
+          console.log('Task updated successfully:', response.data);
           onTaskUpdated(response.data);
           onClose();
           resetForm();
         }
       } else {
-        response = await axios.post('/api/tasks', taskDataToSubmit)
-          .catch(error => {
-            console.error('Detailed error:', {
-              message: error.message,
-              response: error.response?.data,
-              status: error.response?.status,
-              data: taskDataToSubmit
-            });
-            throw error;
+        console.log('Sending POST request to create task...');
+        try {
+          response = await axios.post('/api/tasks', taskDataToSubmit);
+          console.log('POST request successful, response:', response);
+          
+          if (response && response.data) {
+            console.log('Task created successfully:', response.data);
+            // Call onTaskCreated callback with the response data
+            onTaskCreated(response.data);
+            // Close the modal and reset the form
+            onClose();
+            resetForm();
+          } else {
+            console.error('No response data received after creating task');
+            setErrors({ submit: 'Server returned empty response' });
+          }
+        } catch (error) {
+          console.error('Error creating task:', error);
+          console.error('Error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            data: taskDataToSubmit
           });
-        
-        if (response.data) {
-          onTaskCreated(response.data);
-          onClose();
-          resetForm();
+          
+          setErrors({ 
+            submit: error.response?.data?.message || 'Failed to create task. Please try again.' 
+          });
+          throw error;
         }
       }
     } catch (error) {
@@ -444,6 +490,23 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
       console.log('Clients loaded:', clients);
     }
   }, [clients]);
+
+  useEffect(() => {
+    console.log('Task modal opened, getting current user');
+    getCurrentUser();
+  }, []);
+
+  // Make sure AssignedBy is always set
+  useEffect(() => {
+    if (!taskData.AssignedBy && currentUser) {
+      console.log('Setting missing AssignedBy field from currentUser');
+      setTaskData(prev => ({
+        ...prev,
+        AssignedBy: currentUser.email || '',
+        AssignedByName: currentUser.firstname + ' ' + currentUser.lastname
+      }));
+    }
+  }, [currentUser, taskData.AssignedBy]);
 
   if (!isOpen) return null;
 
@@ -544,7 +607,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                         <option 
                           key={engineer._id} 
                           value={engineer.email}
-                          selected={engineer.email === taskData.AssignedTo}
                         >
                           {engineer.fullName}
                         </option>
@@ -593,7 +655,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                         <option 
                           key={client._id} 
                           value={client.email}
-                          selected={client.email === taskData.Client}
                         >
                           {client.fullName}
                         </option>
@@ -702,7 +763,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                           <option 
                             key={engineer.email} 
                             value={engineer.email}
-                            selected={engineer.email === subtask.AssignedTo}
                           >
                             {engineer.fullName}
                           </option>

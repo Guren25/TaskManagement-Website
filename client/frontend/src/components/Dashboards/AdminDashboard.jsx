@@ -16,6 +16,7 @@ import TaskModal from '../TaskModal';
 import './Dashboard.css';
 import { format } from 'date-fns';
 import SideNav from '../SideNav';
+import { subscribeToTaskUpdates, unsubscribeFromTaskUpdates } from '../../services/socket';
 
 ChartJS.register(
   CategoryScale,
@@ -222,9 +223,55 @@ const AdminDashboard = () => {
     width: window.innerWidth,
     height: window.innerHeight
   });
+  const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
     fetchTasks().then(() => fetchActivityLog());
+    
+    // Subscribe to real-time task updates
+    const handleTaskUpdate = (type, data) => {
+      console.log(`Real-time ${type} task:`, data);
+      
+      if (type === 'created') {
+        setTasks(prevTasks => {
+          const updatedTasks = [...prevTasks, data];
+          setFilteredTasks(updatedTasks);
+          setMetrics(calculateMetrics(updatedTasks));
+          setChartData(prepareChartData(timeRange));
+          return updatedTasks;
+        });
+      } 
+      else if (type === 'updated') {
+        setTasks(prevTasks => {
+          const updatedTasks = prevTasks.map(task => 
+            task._id === data._id ? data : task
+          );
+          setFilteredTasks(updatedTasks);
+          setMetrics(calculateMetrics(updatedTasks));
+          setChartData(prepareChartData(timeRange));
+          return updatedTasks;
+        });
+      }
+      else if (type === 'deleted') {
+        setTasks(prevTasks => {
+          const updatedTasks = prevTasks.filter(task => task._id !== data._id);
+          setFilteredTasks(updatedTasks);
+          setMetrics(calculateMetrics(updatedTasks));
+          setChartData(prepareChartData(timeRange));
+          return updatedTasks;
+        });
+      }
+      
+      // Refresh activity logs
+      fetchActivityLog();
+    };
+    
+    subscribeToTaskUpdates(handleTaskUpdate);
+    
+    // Cleanup on component unmount
+    return () => {
+      unsubscribeFromTaskUpdates();
+    };
   }, []);
 
   useEffect(() => {
@@ -278,6 +325,12 @@ const AdminDashboard = () => {
       window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      setChartData(prepareChartData(timeRange));
+    }
+  }, [tasks, timeRange]);
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -547,21 +600,40 @@ const AdminDashboard = () => {
   };
 
   const handleTaskCreated = (newTask) => {
-    // If the task comes with email, we need to convert it to full name
+    console.log('handleTaskCreated called with:', newTask);
+    
+    if (!newTask || !newTask._id) {
+      console.error('Invalid task data received:', newTask);
+      return;
+    }
+
+    // If the task comes with email, we need to convert it to full name if necessary
     const taskWithNames = {
       ...newTask,
-      AssignedTo: newTask.AssignedTo, // This should already be the full name from TaskModal
-      AssignedBy: `${currentUser.firstname} ${currentUser.lastname}`,
-      subtask: newTask.subtask?.map(sub => ({
+      // Ensure these fields are present even if they're null or undefined
+      AssignedTo: newTask.AssignedToName || newTask.AssignedTo || '',
+      AssignedBy: newTask.AssignedByName || newTask.AssignedBy || 
+                  (currentUser ? `${currentUser.firstname} ${currentUser.lastname}` : ''),
+      subtask: (newTask.subtask || []).map(sub => ({
         ...sub,
-        AssignedTo: sub.AssignedTo // Make sure subtask AssignedTo is also using full name
+        AssignedTo: sub.AssignedToName || sub.AssignedTo || ''
       }))
     };
 
+    console.log('Adding new task to state:', taskWithNames);
+
     setTasks(prevTasks => {
+      // Check if task already exists to avoid duplicates
+      if (prevTasks.some(task => task._id === taskWithNames._id)) {
+        console.log('Task already exists in state, skipping addition');
+        return prevTasks;
+      }
+      
       const updatedTasks = [...prevTasks, taskWithNames];
       setFilteredTasks(updatedTasks);
       setMetrics(calculateMetrics(updatedTasks));
+      // Update chart data immediately
+      setChartData(prepareChartData(timeRange));
       return updatedTasks;
     });
     
@@ -576,6 +648,8 @@ const AdminDashboard = () => {
       );
       setFilteredTasks(updatedTasks);
       setMetrics(calculateMetrics(updatedTasks));
+      // Update chart data immediately
+      setChartData(prepareChartData(timeRange));
       return updatedTasks;
     });
     
@@ -757,7 +831,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
               <div className="chart-container">
-                <Line data={prepareChartData(timeRange)} options={chartOptions} />
+                <Line data={chartData || prepareChartData(timeRange)} options={chartOptions} />
               </div>
             </div>
 
@@ -984,12 +1058,14 @@ const AdminDashboard = () => {
             isOpen={isModalOpen}
             onClose={handleCloseModal}
             onTaskCreated={(newTask) => {
+              console.log('Task created callback received in AdminDashboard:', newTask);
               handleTaskCreated(newTask);
-              setIsModalOpen(false);
+              // Modal is already closed in TaskModal component
             }}
             onTaskUpdated={(updatedTask) => {
+              console.log('Task updated callback received in AdminDashboard:', updatedTask);
               handleTaskUpdated(updatedTask);
-              setIsModalOpen(false);
+              // Modal is already closed in TaskModal component
             }}
             existingTask={taskToEdit}
           />

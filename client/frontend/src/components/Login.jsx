@@ -12,6 +12,7 @@ const Login = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
+  const [showPassword, setShowPassword] = useState(false);
   
   const { login, error, user } = useAuth();
   const navigate = useNavigate();
@@ -29,6 +30,10 @@ const Login = () => {
       ...formData,
       [name]: value
     });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const validate = () => {
@@ -119,15 +124,25 @@ const Login = () => {
           
           <div className="auth-form-group">
             <label className="auth-form-label" htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              className={`auth-form-input ${formErrors.password ? 'error' : ''}`}
-            />
+            <div className="password-input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                className={`auth-form-input ${formErrors.password ? 'error' : ''}`}
+              />
+              <button 
+                type="button" 
+                className="password-toggle-btn" 
+                onClick={togglePasswordVisibility}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                <i className={`password-toggle-icon ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+              </button>
+            </div>
             {formErrors.password && <span className="auth-error-text">{formErrors.password}</span>}
           </div>
           

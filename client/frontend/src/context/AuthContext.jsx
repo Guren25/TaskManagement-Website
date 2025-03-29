@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { initializeSocket, disconnectSocket } from '../services/socket';
 
 axios.defaults.baseURL = 'http://localhost:5000';
 
@@ -60,32 +61,46 @@ export const AuthProvider = ({ children }) => {
     verifyUser();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (credentials) => {
+    setLoading(true);
+    setError(null);
     try {
-      setError(null);
-      const res = await axios.post('/api/users/login', { email, password });
-      
-      // Make sure the token is being stored properly
-      const token = res.data.token;
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      setToken(token);
-      setUser(res.data.user);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      
-      console.log('Login successful:', res.data); // Add this for debugging
-      return res.data;
-    } catch (err) {
-      console.error("Login error details:", err);
-      if (err.code === 'ERR_NETWORK') {
-        setError('Unable to connect to server. Please check your connection or try again later.');
-      } else if (err.response?.data?.deactivated) {
-        setError('Your account has been deactivated. Please contact an administrator.');
+      const response = await axios.post('/api/users/login', credentials);
+      if (response.data.token) {
+        // Store token with proper expiration
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Initialize socket connection with explicit logging
+        console.log('Initializing socket after successful login');
+        const socketInstance = initializeSocket(response.data.token);
+        console.log('Socket initialization complete, instance:', socketInstance ? 'created' : 'failed');
+        
+        setUser(response.data.user);
+        setToken(response.data.token);
+        
+        setLoading(false);
+        return { success: true };
       } else {
-        setError(err.response?.data?.message || "Login failed");
+        setError('Authentication failed. No token received.');
+        setLoading(false);
+        return { success: false, error: 'Authentication failed. No token received.' };
       }
-      throw err;
+    } catch (err) {
+      console.error('Login error:', err);
+      let errorMessage = 'An error occurred during login.';
+      
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        errorMessage = err.response.data.message || 'Server responded with an error.';
+      } else if (err.request) {
+        // The request was made but no response was received
+        errorMessage = 'No response from server. Please check your connection.';
+      }
+      
+      setError(errorMessage);
+      setLoading(false);
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -101,10 +116,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    setToken(null);
-    setUser(null);
+    // Disconnect socket first
+    console.log('Disconnecting socket during logout');
+    disconnectSocket();
+    
+    // Then remove auth data
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setUser(null);
+    setToken(null);
+    
+    console.log('Logout complete, user session ended');
   };
 
   return (

@@ -16,6 +16,8 @@ const ChangePassword = () => {
     type: 'info' 
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -36,6 +38,14 @@ const ChangePassword = () => {
       ...formData,
       [name]: value
     });
+  };
+
+  const toggleNewPasswordVisibility = () => {
+    setShowNewPassword(!showNewPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -98,25 +108,45 @@ const ChangePassword = () => {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <input
-              type="password"
-              name="newPassword"
-              value={formData.newPassword}
-              onChange={handleChange}
-              placeholder="New Password"
-              required
-            />
+            <div className="password-input-container">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleChange}
+                placeholder="New Password"
+                required
+              />
+              <button 
+                type="button" 
+                className="password-toggle-btn" 
+                onClick={toggleNewPasswordVisibility}
+                aria-label={showNewPassword ? "Hide password" : "Show password"}
+              >
+                <i className={`password-toggle-icon ${showNewPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+              </button>
+            </div>
           </div>
           
           <div className="form-group">
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm Password"
-              required
-            />
+            <div className="password-input-container">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm Password"
+                required
+              />
+              <button 
+                type="button" 
+                className="password-toggle-btn" 
+                onClick={toggleConfirmPasswordVisibility}
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              >
+                <i className={`password-toggle-icon ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+              </button>
+            </div>
           </div>
           
           <button 

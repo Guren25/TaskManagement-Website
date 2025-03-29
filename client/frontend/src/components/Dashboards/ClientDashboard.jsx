@@ -16,6 +16,7 @@ import TaskModal from '../TaskModal';
 import './Dashboard.css';
 import { format } from 'date-fns';
 import SideNav from '../SideNav';
+import { subscribeToTaskUpdates, unsubscribeFromTaskUpdates } from '../../services/socket';
 
 ChartJS.register(
   CategoryScale,
@@ -216,6 +217,7 @@ const ClientDashboard = () => {
     width: window.innerWidth,
     height: window.innerHeight
   });
+  const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -266,6 +268,99 @@ const ClientDashboard = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      setChartData(prepareChartData(timeRange));
+    }
+  }, [tasks, timeRange]);
+
+  useEffect(() => {
+    fetchTasks().then(() => fetchActivityLog());
+    
+    // Subscribe to real-time task updates
+    const handleTaskUpdate = (type, data) => {
+      console.log(`Real-time ${type} task:`, data);
+      
+      // For client dashboard, only process tasks where this client is the client
+      const currentUserFullName = currentUser ? 
+        `${currentUser.firstname} ${currentUser.lastname}` : '';
+      const currentUserEmail = currentUser?.email;
+      
+      // Check if this client is the client for the task
+      const isTaskForClient = (task) => {
+        return task.Client === currentUserFullName || task.Client === currentUserEmail;
+      };
+      
+      if (type === 'created' && isTaskForClient(data)) {
+        setTasks(prevTasks => {
+          const updatedTasks = [...prevTasks, data];
+          setFilteredTasks(updatedTasks);
+          setMetrics(calculateMetrics(updatedTasks));
+          setChartData(prepareChartData(timeRange));
+          return updatedTasks;
+        });
+      } 
+      else if (type === 'updated') {
+        // Check if this task was or is now for this client
+        const wasForClient = tasks.some(task => task._id === data._id);
+        
+        if (wasForClient || isTaskForClient(data)) {
+          setTasks(prevTasks => {
+            // If wasForClient but no longer is, filter it out
+            if (wasForClient && !isTaskForClient(data)) {
+              const updatedTasks = prevTasks.filter(task => task._id !== data._id);
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            }
+            
+            // If wasn't for client but now is, add it
+            if (!wasForClient && isTaskForClient(data)) {
+              const updatedTasks = [...prevTasks, data];
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            }
+            
+            // Otherwise just update the existing task
+            const updatedTasks = prevTasks.map(task => 
+              task._id === data._id ? data : task
+            );
+            setFilteredTasks(updatedTasks);
+            setMetrics(calculateMetrics(updatedTasks));
+            setChartData(prepareChartData(timeRange));
+            return updatedTasks;
+          });
+        }
+      }
+      else if (type === 'deleted') {
+        setTasks(prevTasks => {
+          // Only remove if it exists in the current task list
+          if (prevTasks.some(task => task._id === data._id)) {
+            const updatedTasks = prevTasks.filter(task => task._id !== data._id);
+            setFilteredTasks(updatedTasks);
+            setMetrics(calculateMetrics(updatedTasks));
+            setChartData(prepareChartData(timeRange));
+            return updatedTasks;
+          }
+          return prevTasks;
+        });
+      }
+      
+      // Refresh activity logs
+      fetchActivityLog();
+    };
+    
+    subscribeToTaskUpdates(handleTaskUpdate);
+    
+    // Cleanup on component unmount
+    return () => {
+      unsubscribeFromTaskUpdates();
     };
   }, []);
 
@@ -579,14 +674,14 @@ const ClientDashboard = () => {
   };
 
   const handleTaskCreated = (newTask) => {
-    // If the task comes with email, we need to convert it to full name
+    // Format the task with full names
     const taskWithNames = {
       ...newTask,
-      AssignedTo: newTask.AssignedTo, // This should already be the full name from TaskModal
+      AssignedTo: newTask.AssignedTo,
       AssignedBy: `${currentUser.firstname} ${currentUser.lastname}`,
       subtask: newTask.subtask?.map(sub => ({
         ...sub,
-        AssignedTo: sub.AssignedTo // Make sure subtask AssignedTo is also using full name
+        AssignedTo: sub.AssignedTo
       }))
     };
 
@@ -594,30 +689,29 @@ const ClientDashboard = () => {
       const updatedTasks = [...prevTasks, taskWithNames];
       setFilteredTasks(updatedTasks);
       setMetrics(calculateMetrics(updatedTasks));
+      // Update chart data immediately
+      setChartData(prepareChartData(timeRange));
       return updatedTasks;
     });
     
-    const newLog = {
-      _id: `task-created-${newTask._id}`,
-      type: 'task-created',
-      taskName: newTask.TaskName,
-      user: taskWithNames.AssignedBy,
-      timestamp: new Date().toISOString(),
-      message: `Task "${newTask.TaskName}" created by ${taskWithNames.AssignedBy}`
-    };
+    // Fetch updated activity logs
+    fetchActivityLog();
+  };
+
+  const handleTaskUpdated = (updatedTask) => {
+    setTasks(prevTasks => {
+      const updatedTasks = prevTasks.map(task => 
+        task._id === updatedTask._id ? updatedTask : task
+      );
+      setFilteredTasks(updatedTasks);
+      setMetrics(calculateMetrics(updatedTasks));
+      // Update chart data immediately
+      setChartData(prepareChartData(timeRange));
+      return updatedTasks;
+    });
     
-    const subtaskLogs = newTask.subtask && newTask.subtask.length > 0 ? 
-      newTask.subtask.map((subtask, index) => ({
-        _id: `subtask-added-${newTask._id}-${index}`,
-        type: 'subtask-added',
-        taskName: newTask.TaskName,
-        subtaskName: subtask.TaskName,
-        user: taskWithNames.AssignedBy,
-        timestamp: new Date().toISOString(),
-        message: `Subtask "${subtask.TaskName}" added to "${newTask.TaskName}" by ${taskWithNames.AssignedBy}`
-      })) : [];
-    
-    setActivityLog([newLog, ...subtaskLogs, ...activityLog]);
+    // Fetch updated activity logs
+    fetchActivityLog();
   };
 
   const getStatusBadgeClass = (status) => {
@@ -781,7 +875,7 @@ const ClientDashboard = () => {
                 </div>
               </div>
               <div className="chart-container">
-                <Line data={prepareChartData(timeRange)} options={chartOptions} />
+                <Line data={chartData || prepareChartData(timeRange)} options={chartOptions} />
               </div>
             </div>
 

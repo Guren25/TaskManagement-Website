@@ -118,8 +118,49 @@ const sendDueDateEmail = async (recipientEmail, taskDetails) => {
         console.error('Error sending due date reminder:', error);
         throw error;
     }
-
 };
+
+const sendSubtaskDueDateEmail = async (recipientEmail, mainTask, subtask) => {
+    try {
+        const isOverdue = mainTask.daysRemaining < 0;
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: recipientEmail,
+            subject: `Main Task ${isOverdue ? 'Overdue' : 'Due Date'} Reminder: ${mainTask.TaskName}`,
+            html: `
+                <h2>Main Task ${isOverdue ? 'Overdue' : 'Due Date'} Reminder</h2>
+                <p style="color: ${isOverdue ? '#ff0000' : mainTask.daysRemaining <= 3 ? '#ff3b30' : '#ff9500'}">
+                    <strong>${
+                        isOverdue 
+                            ? `The main task is overdue by ${Math.abs(mainTask.daysRemaining)} day${Math.abs(mainTask.daysRemaining) > 1 ? 's' : ''}!` 
+                            : `The main task is due in ${mainTask.daysRemaining} day${mainTask.daysRemaining > 1 ? 's' : ''}!`
+                    }</strong>
+                </p>
+                <p><strong>Main Task:</strong> ${mainTask.TaskName}</p>
+                <p><strong>Your Subtask:</strong> ${subtask.TaskName}</p>
+                <p><strong>Description:</strong> ${mainTask.Description}</p>
+                <p><strong>Location:</strong> ${mainTask.Location}</p>
+                <p><strong>Main Task Priority:</strong> ${mainTask.Priority}</p>
+                <p><strong>Subtask Priority:</strong> ${subtask.Priority}</p>
+                <p><strong>Due Date:</strong> ${new Date(mainTask.EndDate).toLocaleDateString()}</p>
+                <br>
+                <p>${
+                    isOverdue 
+                        ? 'Please complete your subtask as soon as possible as the main task is past the due date.' 
+                        : 'Please ensure to complete your subtask before the main task due date.'
+                }</p>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Subtask due date reminder email sent:', info.response);
+        return true;
+    } catch (error) {
+        console.error('Error sending subtask due date reminder:', error);
+        throw error;
+    }
+};
+
 const sendWelcomeEmail = async (user, tempPassword) => {
     try {
         const mailOptions = {
@@ -223,6 +264,7 @@ module.exports = {
     sendTaskAssignmentEmail,
     sendSubtaskAssignmentEmail,
     sendDueDateEmail,
+    sendSubtaskDueDateEmail,
     sendWelcomeEmail,
     sendVerificationEmail,
     verifyConnection,

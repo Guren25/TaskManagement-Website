@@ -1,5 +1,5 @@
 const Task = require('../models/Task');
-const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail, sendDueDateEmail } = require('../utils/emailService');
+const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail, sendDueDateEmail, sendSubtaskDueDateEmail } = require('../utils/emailService');
 const ActivityLog = require('../models/ActivityLog');
 const { v4: uuidv4 } = require('uuid');
 
@@ -51,11 +51,36 @@ const checkDueDates = async () => {
         await notification.save();
 
         try {
+          // Send email to main task assignee
           await sendDueDateEmail(task.AssignedTo, {
             ...task.toObject(),
             daysRemaining: daysUntilDue
           });
           console.log(`Email notification sent for task "${task.TaskName}"`);
+          
+          // Send email to each subtask assignee
+          if (task.subtask && task.subtask.length > 0) {
+            const taskWithDaysRemaining = {
+              ...task.toObject(),
+              daysRemaining: daysUntilDue
+            };
+            
+            // Track emails already sent to avoid duplicates
+            const emailsSent = new Set([task.AssignedTo.toLowerCase()]);
+            
+            for (const subtask of task.subtask) {
+              // Skip if email already sent to this assignee or if subtask is completed
+              if (subtask.Status === 'completed' || 
+                  !subtask.AssignedTo || 
+                  emailsSent.has(subtask.AssignedTo.toLowerCase())) {
+                continue;
+              }
+              
+              await sendSubtaskDueDateEmail(subtask.AssignedTo, taskWithDaysRemaining, subtask);
+              emailsSent.add(subtask.AssignedTo.toLowerCase());
+              console.log(`Subtask email notification sent for "${subtask.TaskName}" to ${subtask.AssignedTo}`);
+            }
+          }
         } catch (emailError) {
           console.error(`Error sending email for task "${task.TaskName}":`, emailError);
         }
@@ -144,6 +169,15 @@ const taskController = {
                 console.error('Error sending email notification:', emailError);
             }
 
+            // Emit socket event for task creation
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('taskCreated', savedTask);
+                console.log('Socket event emitted: taskCreated');
+            } else {
+                console.log('No socket instance found on app');
+            }
+
             res.status(201).json(savedTask);
         } catch (error) {
             res.status(400).json({ message: error.message });
@@ -192,6 +226,15 @@ const taskController = {
             });
             await activityLog.save();
             
+            // Emit socket event for task update
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('taskUpdated', updatedTask);
+                console.log('Socket event emitted: taskUpdated');
+            } else {
+                console.log('No socket instance found on app');
+            }
+            
             res.status(200).json(updatedTask);
         } catch (error) {
             res.status(500).json({ message: "Error updating task", error: error.message });
@@ -204,6 +247,16 @@ const taskController = {
             if(!task){
                 return res.status(404).json({ message: "Task not found" });
             }
+
+            // Emit socket event for task deletion
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('taskDeleted', { _id: req.params.id });
+                console.log('Socket event emitted: taskDeleted');
+            } else {
+                console.log('No socket instance found on app');
+            }
+            
             res.status(200).json({ message: "Task deleted successfully" });
         } catch (error) {
             res.status(500).json({ message: "Error deleting task", error: error.message });
@@ -351,6 +404,15 @@ const taskController = {
                 console.error('Error sending subtask email notification:', emailError);
             }
 
+            // Emit socket event for task update (since a subtask was added)
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('taskUpdated', task);
+                console.log('Socket event emitted: taskUpdated (subtask added)');
+            } else {
+                console.log('No socket instance found on app');
+            }
+
             res.status(200).json(task);
         } catch (error) {
             res.status(400).json({ message: error.message });
@@ -396,6 +458,15 @@ const taskController = {
                 timestamp: new Date()
             });
             await activityLog.save();
+            
+            // Emit socket event for task update (since a subtask status was changed)
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('taskUpdated', task);
+                console.log('Socket event emitted: taskUpdated (subtask status changed)');
+            } else {
+                console.log('No socket instance found on app');
+            }
             
             res.status(200).json(task);
         } catch (error) {
@@ -446,6 +517,15 @@ const taskController = {
                 timestamp: new Date()
             });
             await activityLog.save();
+
+            // Emit socket event for task status update
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('taskUpdated', task);
+                console.log('Socket event emitted: taskUpdated (status changed)');
+            } else {
+                console.log('No socket instance found on app');
+            }
 
             res.status(200).json(task);
         } catch (error) {
