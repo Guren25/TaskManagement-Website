@@ -515,4 +515,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .notification-icon {
   margin-right: 8px;
   font-style: normal;
+}
+
+.admin-task-server-error {
+  color: #ff3860;
+  font-size: 0.85rem;
+  background-color: rgba(255, 56, 96, 0.1);
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 12px;
+  width: 100%;
+  text-align: center;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-task-server-error::before {
+  content: "⚠️";
+  margin-right: 8px;
 } 

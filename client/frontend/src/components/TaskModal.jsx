@@ -392,6 +392,14 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
     if (!taskData.StartDate) newErrors.StartDate = "Start date is required";
     if (!taskData.EndDate) newErrors.EndDate = "End date is required";
     
+    // Show toast notification for validation errors
+    if (Object.keys(newErrors).length > 0) {
+      // Get the first error to display in the toast
+      const firstErrorField = Object.keys(newErrors)[0];
+      const errorMessage = `Validation Error: ${newErrors[firstErrorField]}`;
+      showToast(errorMessage, 'error');
+    }
+    
     return newErrors;
   };
 
@@ -439,6 +447,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
           onTaskUpdated(response.data);
           onClose();
           resetForm();
+          showToast('Subtasks updated successfully', 'success');
         }
         
         setIsSubmitting(false);
@@ -515,6 +524,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
           onTaskUpdated(response.data);
           onClose();
           resetForm();
+          showToast('Task updated successfully', 'success');
         }
       } else {
         console.log('Sending POST request to create task...');
@@ -529,9 +539,11 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
             // Close the modal and reset the form
             onClose();
             resetForm();
+            showToast('Task created successfully', 'success');
           } else {
             console.error('No response data received after creating task');
             setErrors({ submit: 'Server returned empty response' });
+            showToast('Server returned empty response', 'error');
           }
         } catch (error) {
           console.error('Error creating task:', error);
@@ -542,9 +554,9 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
             data: taskDataToSubmit
           });
           
-          setErrors({ 
-            submit: error.response?.data?.message || 'Failed to create task. Please try again.' 
-          });
+          const errorMessage = error.response?.data?.message || 'Failed to create task. Please try again.';
+          setErrors({ submit: errorMessage });
+          showToast(errorMessage, 'error');
           throw error;
         }
       }
@@ -553,9 +565,9 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
       if (error.response) {
         console.error('Server error response:', error.response.data);
       }
-      setErrors({ 
-        submit: error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} task. Please try again.` 
-      });
+      const errorMessage = error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} task. Please try again.`;
+      setErrors({ submit: errorMessage });
+      showToast(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -903,6 +915,12 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                   : 'Create Task'
               )}
             </button>
+            
+            {errors.submit && (
+              <div className="admin-task-server-error">
+                {errors.submit}
+              </div>
+            )}
           </div>
         </form>
       </div>
