@@ -106,13 +106,14 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
         )}
       </div>
       
-      <form onSubmit={handleSubmitComment} className="comment-form">
+      <form onSubmit={handleSubmitComment} className="comment-form" onClick={(e) => e.stopPropagation()}>
         <textarea
           className="comment-input"
           placeholder="Post your reply"
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
           rows={1}
+          onClick={(e) => e.stopPropagation()}
           onKeyPress={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -125,6 +126,7 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
           className="comment-submit-btn"
           disabled={isSubmitting || !commentText.trim()}
           aria-label="Post comment"
+          onClick={(e) => e.stopPropagation()}
         >
           <span>→</span>
         </button>

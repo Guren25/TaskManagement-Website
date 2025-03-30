@@ -1013,12 +1013,6 @@ const EngineerDashboard = () => {
   };
 
   const handleSubtaskClick = (e, subtask, taskId) => {
-    // If clicked on a comment section element, don't trigger status change
-    if (e.target.closest('.subtask-comments-section') || 
-        e.target.classList.contains('toggle-comments-btn')) {
-      return;
-    }
-    
     // Check if the current user is assigned to this subtask
     const currentUserEmail = currentUser?.email;
     const currentUserFullName = currentUser ? 
@@ -1384,12 +1378,13 @@ const EngineerDashboard = () => {
                     <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
                     <div className="subtasks-list">
                       {selectedTask.subtask.map((subtask, index) => (
-                        <div key={index} className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''}`}>
-                          <div 
-                            className={`subtask-content ${isSubtaskAssignedToCurrentUser(subtask) ? 'assignee-subtask' : ''}`}
-                            onClick={(e) => handleSubtaskClick(e, subtask, selectedTask._id)}
-                            style={{ cursor: isSubtaskAssignedToCurrentUser(subtask) ? 'pointer' : 'default' }}
-                          >
+                        <div 
+                          key={index} 
+                          className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''} ${isSubtaskAssignedToCurrentUser(subtask) ? 'assignee-subtask' : ''}`}
+                          onClick={(e) => handleSubtaskClick(e, subtask, selectedTask._id)}
+                          style={{ cursor: isSubtaskAssignedToCurrentUser(subtask) ? 'pointer' : 'default' }}
+                        >
+                          <div className="subtask-content">
                             <span className="subtask-name">{subtask.TaskName}</span>
                             <div className="subtask-badges">
                               <span className={`status-badge ${subtask.Status}`}>
@@ -1410,7 +1405,10 @@ const EngineerDashboard = () => {
                             </span>
                             <button 
                               className="toggle-comments-btn"
-                              onClick={() => toggleSubtaskExpansion(subtask.TaskID)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSubtaskExpansion(subtask.TaskID);
+                              }}
                             >
                               {expandedSubtasks[subtask.TaskID] ? 'Hide Comments' : 'Show Comments'}
                               {!expandedSubtasks[subtask.TaskID] && (
@@ -1422,12 +1420,14 @@ const EngineerDashboard = () => {
                           </div>
                           
                           {expandedSubtasks[subtask.TaskID] && (
-                            <SubtaskComments 
-                              taskId={selectedTask._id} 
-                              subtask={subtask} 
-                              currentUser={currentUser}
-                              onCommentAdded={() => handleCommentAdded(selectedTask._id, subtask.TaskID)}
-                            />
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <SubtaskComments 
+                                taskId={selectedTask._id} 
+                                subtask={subtask} 
+                                currentUser={currentUser}
+                                onCommentAdded={() => handleCommentAdded(selectedTask._id, subtask.TaskID)}
+                              />
+                            </div>
                           )}
                         </div>
                       ))}
