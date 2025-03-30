@@ -1019,6 +1019,19 @@ const EngineerDashboard = () => {
       return;
     }
     
+    // Check if the current user is assigned to this subtask
+    const currentUserEmail = currentUser?.email;
+    const currentUserFullName = currentUser ? 
+      `${currentUser.firstname} ${currentUser.lastname}` : '';
+      
+    // Only allow status changes if this subtask is assigned to the current user
+    if (subtask.AssignedTo !== currentUserEmail && 
+        subtask.AssignedTo !== currentUserFullName &&
+        subtask.AssignedToName !== currentUserFullName) {
+      console.log('Cannot change status: This subtask is not assigned to you');
+      return; // Not assigned to this user, don't allow status change
+    }
+    
     if (subtask.Status === 'not-started') {
       setConfirmationModal({
         isOpen: true,
@@ -1089,10 +1102,20 @@ const EngineerDashboard = () => {
         setSelectedTask(updatedTask);
       }
       
-      // Refresh activity logs to get latest entries
+      // Fetch updated activity logs
       fetchActivityLog();
     } catch (error) {
       console.error('Error updating subtask status:', error);
+      
+      // Show permission denied error in the confirmation modal
+      if (error.response && error.response.status === 403) {
+        setConfirmationModal({
+          isOpen: true,
+          message: "Permission denied: You can only update subtasks assigned to you.",
+          confirmText: "OK",
+          onConfirm: () => setConfirmationModal({ isOpen: false, message: '', onConfirm: null })
+        });
+      }
     }
   };
 
@@ -1148,11 +1171,28 @@ const EngineerDashboard = () => {
         if (selectedTask && selectedTask._id === taskId) {
           setSelectedTask(updatedTask);
         }
+        
+        // Fetch updated activity logs
+        fetchActivityLog();
       }
     } catch (error) {
       console.error('Error refreshing task after comment:', error);
     }
-  }, [selectedTask]);
+  }, [selectedTask, fetchActivityLog]);
+
+  // Function to check if a subtask is assigned to the current user
+  const isSubtaskAssignedToCurrentUser = (subtask) => {
+    if (!currentUser) return false;
+    
+    const currentUserEmail = currentUser.email;
+    const currentUserFullName = `${currentUser.firstname} ${currentUser.lastname}`;
+    
+    return (
+      subtask.AssignedTo === currentUserEmail || 
+      subtask.AssignedTo === currentUserFullName ||
+      subtask.AssignedToName === currentUserFullName
+    );
+  };
 
   return (
     <div className="admin-layout">
@@ -1346,9 +1386,9 @@ const EngineerDashboard = () => {
                       {selectedTask.subtask.map((subtask, index) => (
                         <div key={index} className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''}`}>
                           <div 
-                            className="subtask-content"
+                            className={`subtask-content ${isSubtaskAssignedToCurrentUser(subtask) ? 'assignee-subtask' : ''}`}
                             onClick={(e) => handleSubtaskClick(e, subtask, selectedTask._id)}
-                            style={{ cursor: 'pointer' }}
+                            style={{ cursor: isSubtaskAssignedToCurrentUser(subtask) ? 'pointer' : 'default' }}
                           >
                             <span className="subtask-name">{subtask.TaskName}</span>
                             <div className="subtask-badges">
@@ -1362,7 +1402,12 @@ const EngineerDashboard = () => {
                           </div>
                           <div className="subtask-detail">
                             <span className="detail-label">Assigned To:</span>
-                            <span className="detail-value">{subtask.AssignedToName || subtask.AssignedTo}</span>
+                            <span className="detail-value">
+                              {subtask.AssignedToName || subtask.AssignedTo}
+                              {isSubtaskAssignedToCurrentUser(subtask) && (
+                                <span className="assigned-badge">You</span>
+                              )}
+                            </span>
                             <button 
                               className="toggle-comments-btn"
                               onClick={() => toggleSubtaskExpansion(subtask.TaskID)}

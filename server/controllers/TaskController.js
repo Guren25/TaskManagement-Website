@@ -2,6 +2,7 @@ const Task = require('../models/Task');
 const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail, sendDueDateEmail, sendSubtaskDueDateEmail } = require('../utils/emailService');
 const ActivityLog = require('../models/ActivityLog');
 const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
 
 const calculateTaskPercentage = (subtasks) => {
     if (!subtasks || subtasks.length === 0) return 0;
@@ -441,6 +442,20 @@ const taskController = {
             const oldSubtask = oldTask.subtask.find(s => s.TaskID === subtaskId);
             if (!oldSubtask) {
                 return res.status(404).json({ message: "Subtask not found" });
+            }
+            
+            // Check if the user has permission to update this subtask's status
+            // The requester (ChangedBy) should match the subtask's AssignedTo
+            // This is to verify that only the assigned person can update the status
+            if (ChangedBy && ChangedBy !== oldSubtask.AssignedTo) {
+                // Get user info to check if admin 
+                const user = await mongoose.model('User').findOne({ email: ChangedBy });
+                // Allow update only if the user is an admin
+                if (!user || user.role !== 'admin') {
+                    return res.status(403).json({ 
+                        message: "Permission denied: Only the assigned user or an admin can update this subtask's status" 
+                    });
+                }
             }
             
             const task = await Task.findById(taskId);
