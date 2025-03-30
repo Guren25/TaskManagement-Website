@@ -29,6 +29,7 @@ router.get('/filter/subtask/:Subtask', taskController.getTaskBySubtask);
 
 router.post('/:id/subtask', taskController.addSubtask);
 router.patch('/:taskId/subtask/:subtaskId/status', taskController.updateSubtaskStatus);
+router.put('/:taskId/subtask/:subtaskId/status', taskController.updateSubtaskStatus);
 router.post('/:taskId/subtask/:subtaskId/comment', taskController.addSubtaskComment);
 
 

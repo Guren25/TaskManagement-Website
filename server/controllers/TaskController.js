@@ -450,6 +450,13 @@ const taskController = {
                 return res.status(404).json({ message: "Subtask not found" });
             }
             
+            // Store original AssignedToName and ClientName values if they exist
+            const originalValues = {
+                AssignedToName: task.AssignedToName,
+                ClientName: task.ClientName,
+                AssignedByName: task.AssignedByName
+            };
+            
             subtask.Status = Status;
             task.percentage = calculateTaskPercentage(task.subtask);
             
@@ -462,17 +469,25 @@ const taskController = {
             
             await task.save();
             
+            // Fetch the task again with populated values to ensure we don't lose any data
+            const updatedTask = await Task.findById(taskId);
+            
+            // Restore the name mappings if they existed
+            if (originalValues.AssignedToName) updatedTask.AssignedToName = originalValues.AssignedToName;
+            if (originalValues.ClientName) updatedTask.ClientName = originalValues.ClientName;
+            if (originalValues.AssignedByName) updatedTask.AssignedByName = originalValues.AssignedByName;
+            
             const activityLog = new ActivityLog({
                 logID: uuidv4(),
                 taskID: taskId,
                 changedBy: ChangedBy,
                 changeType: 'Updated',
                 oldValue: { 
-                    TaskName: task.TaskName,
+                    TaskName: updatedTask.TaskName,
                     Status: oldSubtask.Status
                 },
                 newValue: { 
-                    TaskName: task.TaskName,
+                    TaskName: updatedTask.TaskName,
                     Status: subtask.Status,
                     message: `Subtask "${subtask.TaskName}" status changed from "${oldSubtask.Status}" to "${subtask.Status}"`
                 },
@@ -483,13 +498,13 @@ const taskController = {
             // Emit socket event for task update (since a subtask status was changed)
             const io = req.app.get('io');
             if (io) {
-                io.emit('taskUpdated', task);
+                io.emit('taskUpdated', updatedTask);
                 console.log('Socket event emitted: taskUpdated (subtask status changed)');
             } else {
                 console.log('No socket instance found on app');
             }
             
-            res.status(200).json(task);
+            res.status(200).json(updatedTask);
         } catch (error) {
             res.status(500).json({ message: "Error updating subtask status", error: error.message });
         }
@@ -606,7 +621,22 @@ const taskController = {
                 timestamp: new Date()
             });
 
+            // Store original AssignedToName and ClientName values if they exist
+            const originalValues = {
+                AssignedToName: task.AssignedToName,
+                ClientName: task.ClientName,
+                AssignedByName: task.AssignedByName
+            };
+
             await task.save();
+
+            // Fetch the task again with populated values to ensure we don't lose any data
+            const updatedTask = await Task.findById(taskId);
+            
+            // Restore the name mappings if they existed
+            if (originalValues.AssignedToName) updatedTask.AssignedToName = originalValues.AssignedToName;
+            if (originalValues.ClientName) updatedTask.ClientName = originalValues.ClientName;
+            if (originalValues.AssignedByName) updatedTask.AssignedByName = originalValues.AssignedByName;
 
             // Create activity log for the comment
             const activityLog = new ActivityLog({
@@ -615,7 +645,7 @@ const taskController = {
                 changedBy: author,
                 changeType: 'Updated',
                 newValue: { 
-                    TaskName: task.TaskName,
+                    TaskName: updatedTask.TaskName,
                     message: `New comment on subtask "${subtask.TaskName}": "${text}"`
                 },
                 timestamp: new Date()
@@ -625,13 +655,13 @@ const taskController = {
             // Emit socket event for task update (since a comment was added)
             const io = req.app.get('io');
             if (io) {
-                io.emit('taskUpdated', task);
+                io.emit('taskUpdated', updatedTask);
                 console.log('Socket event emitted: taskUpdated (comment added)');
             } else {
                 console.log('No socket instance found on app');
             }
 
-            res.status(200).json(task);
+            res.status(200).json(updatedTask);
         } catch (error) {
             res.status(500).json({ message: "Error adding subtask comment", error: error.message });
         }

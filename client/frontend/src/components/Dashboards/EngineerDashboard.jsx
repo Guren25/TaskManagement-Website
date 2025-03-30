@@ -1038,38 +1038,59 @@ const EngineerDashboard = () => {
 
   const updateSubtaskStatus = async (taskId, subtask, newStatus) => {
     try {
-      const changedBy = currentUser ? 
-        `${currentUser.firstname} ${currentUser.lastname}` : 'Unknown';
-      
-      const response = await axios.patch(`/api/tasks/${taskId}/subtask/${subtask.TaskID}/status`, {
-        Status: newStatus,
-        ChangedBy: changedBy,
-        subtaskName: subtask.TaskName,
-        oldStatus: subtask.Status,
-        newStatus: newStatus,
-        changeType: 'SubtaskStatusUpdated',
-        timestamp: new Date().toISOString()
-      });
-
-      if (response.data) {
-        setTasks(prevTasks => {
-          return prevTasks.map(task => {
-            if (task._id === taskId) {
-              return response.data; // The controller returns the updated task
-            }
-            return task;
-          });
-        });
-
-        if (selectedTask && selectedTask._id === taskId) {
-          setSelectedTask(response.data);
-        }
-
-        setConfirmationModal({ isOpen: false, message: '', onConfirm: null });
-        
-        // Fetch updated activity logs
-        fetchActivityLog();
+      if (!currentUser) {
+        console.error('No current user found, cannot update subtask status');
+        return;
       }
+
+      const payload = {
+        Status: newStatus,
+        ChangedBy: currentUser.email
+      };
+
+      const response = await axios.put(`/api/tasks/${taskId}/subtask/${subtask.TaskID}/status`, payload);
+      
+      // Get latest user data to map emails to names
+      const usersResponse = await axios.get('/api/users');
+      const userMap = {};
+      usersResponse.data.forEach(user => {
+        userMap[user.email] = `${user.firstname} ${user.lastname}`;
+      });
+      
+      // Map names properly for the updated task
+      const updatedTask = {
+        ...response.data,
+        AssignedTo: userMap[response.data.AssignedTo] || response.data.AssignedTo,
+        AssignedBy: userMap[response.data.AssignedBy] || response.data.AssignedBy,
+        Client: userMap[response.data.Client] || response.data.Client,
+        subtask: response.data.subtask?.map(sub => ({
+          ...sub,
+          AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
+          AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
+        }))
+      };
+
+      // Update tasks in state
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task._id === taskId ? updatedTask : task
+        )
+      );
+      
+      // Also update filtered tasks to maintain consistency
+      setFilteredTasks(prevFilteredTasks => 
+        prevFilteredTasks.map(task => 
+          task._id === taskId ? updatedTask : task
+        )
+      );
+      
+      // Update selected task if it's open
+      if (selectedTask && selectedTask._id === taskId) {
+        setSelectedTask(updatedTask);
+      }
+      
+      // Refresh activity logs to get latest entries
+      fetchActivityLog();
     } catch (error) {
       console.error('Error updating subtask status:', error);
     }
@@ -1089,16 +1110,43 @@ const EngineerDashboard = () => {
       // Fetch the specific task with updated comments
       const response = await axios.get(`/api/tasks/${taskId}`);
       if (response.data) {
+        // Get latest user data to map emails to names
+        const usersResponse = await axios.get('/api/users');
+        const userMap = {};
+        usersResponse.data.forEach(user => {
+          userMap[user.email] = `${user.firstname} ${user.lastname}`;
+        });
+        
+        // Map names properly for the updated task
+        const updatedTask = {
+          ...response.data,
+          AssignedTo: userMap[response.data.AssignedTo] || response.data.AssignedTo,
+          AssignedBy: userMap[response.data.AssignedBy] || response.data.AssignedBy,
+          Client: userMap[response.data.Client] || response.data.Client,
+          subtask: response.data.subtask?.map(sub => ({
+            ...sub,
+            AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
+            AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
+          }))
+        };
+        
         // Update the task in the tasks list
         setTasks(prevTasks => 
           prevTasks.map(task => 
-            task._id === taskId ? response.data : task
+            task._id === taskId ? updatedTask : task
+          )
+        );
+        
+        // Also update filtered tasks to maintain consistency
+        setFilteredTasks(prevFilteredTasks => 
+          prevFilteredTasks.map(task => 
+            task._id === taskId ? updatedTask : task
           )
         );
         
         // Update the selected task if it's currently open
         if (selectedTask && selectedTask._id === taskId) {
-          setSelectedTask(response.data);
+          setSelectedTask(updatedTask);
         }
       }
     } catch (error) {

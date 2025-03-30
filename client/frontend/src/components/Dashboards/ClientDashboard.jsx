@@ -1021,16 +1021,43 @@ const ClientDashboard = () => {
       // Fetch the specific task with updated comments
       const response = await axios.get(`/api/tasks/${taskId}`);
       if (response.data) {
+        // Get latest user data to map emails to names
+        const usersResponse = await axios.get('/api/users');
+        const userMap = {};
+        usersResponse.data.forEach(user => {
+          userMap[user.email] = `${user.firstname} ${user.lastname}`;
+        });
+        
+        // Map names properly for the updated task
+        const updatedTask = {
+          ...response.data,
+          AssignedTo: userMap[response.data.AssignedTo] || response.data.AssignedTo,
+          AssignedBy: userMap[response.data.AssignedBy] || response.data.AssignedBy,
+          Client: userMap[response.data.Client] || response.data.Client,
+          subtask: response.data.subtask?.map(sub => ({
+            ...sub,
+            AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
+            AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
+          }))
+        };
+        
         // Update the task in the tasks list
         setTasks(prevTasks => 
           prevTasks.map(task => 
-            task._id === taskId ? response.data : task
+            task._id === taskId ? updatedTask : task
+          )
+        );
+        
+        // Also update filtered tasks to maintain consistency
+        setFilteredTasks(prevFilteredTasks => 
+          prevFilteredTasks.map(task => 
+            task._id === taskId ? updatedTask : task
           )
         );
         
         // Update the selected task if it's currently open
         if (selectedTask && selectedTask._id === taskId) {
-          setSelectedTask(response.data);
+          setSelectedTask(updatedTask);
         }
       }
     } catch (error) {
