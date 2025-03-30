@@ -425,10 +425,23 @@ const taskController = {
             const { Status, ChangedBy } = req.body;
             
             const oldTask = await Task.findById(taskId);
-            const oldSubtask = oldTask.subtask.id(subtaskId);
+            if (!oldTask) {
+                return res.status(404).json({ message: "Task not found" });
+            }
+            
+            // Find old subtask by TaskID
+            const oldSubtask = oldTask.subtask.find(s => s.TaskID === subtaskId);
+            if (!oldSubtask) {
+                return res.status(404).json({ message: "Subtask not found" });
+            }
             
             const task = await Task.findById(taskId);
-            const subtask = task.subtask.id(subtaskId);
+            // Find subtask to update by TaskID
+            const subtask = task.subtask.find(s => s.TaskID === subtaskId);
+            if (!subtask) {
+                return res.status(404).json({ message: "Subtask not found" });
+            }
+            
             subtask.Status = Status;
             task.percentage = calculateTaskPercentage(task.subtask);
             
@@ -549,6 +562,70 @@ const taskController = {
             res.status(200).json(filteredSubtasks);
         } catch (error) {
             res.status(500).json({ message: "Error filtering subtasks", error: error.message });
+        }
+    },
+
+    addSubtaskComment: async (req, res) => {
+        try {
+            const { taskId, subtaskId } = req.params;
+            const { author, text } = req.body;
+
+            if (!author || !text) {
+                return res.status(400).json({ message: "Author and text are required fields" });
+            }
+
+            const task = await Task.findById(taskId);
+            if (!task) {
+                return res.status(404).json({ message: "Task not found" });
+            }
+
+            // Find subtask by TaskID instead of _id
+            const subtask = task.subtask.find(s => s.TaskID === subtaskId);
+            
+            if (!subtask) {
+                return res.status(404).json({ message: "Subtask not found" });
+            }
+
+            // Initialize comments array if it doesn't exist
+            if (!subtask.comments) {
+                subtask.comments = [];
+            }
+
+            // Add the new comment
+            subtask.comments.push({
+                author,
+                text,
+                timestamp: new Date()
+            });
+
+            await task.save();
+
+            // Create activity log for the comment
+            const activityLog = new ActivityLog({
+                logID: uuidv4(),
+                taskID: taskId,
+                changedBy: author,
+                changeType: 'Updated',
+                newValue: { 
+                    TaskName: task.TaskName,
+                    message: `New comment on subtask "${subtask.TaskName}": "${text}"`
+                },
+                timestamp: new Date()
+            });
+            await activityLog.save();
+
+            // Emit socket event for task update (since a comment was added)
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('taskUpdated', task);
+                console.log('Socket event emitted: taskUpdated (comment added)');
+            } else {
+                console.log('No socket instance found on app');
+            }
+
+            res.status(200).json(task);
+        } catch (error) {
+            res.status(500).json({ message: "Error adding subtask comment", error: error.message });
         }
     },
 

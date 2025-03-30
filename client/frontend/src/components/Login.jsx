@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import Toast from './Toast';
 import './Login.css';
+import axios from 'axios';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -52,7 +53,12 @@ const Login = () => {
     if (Object.keys(errors).length === 0) {
       setIsSubmitting(true);
       try {
-        console.log("Attempting login with:", { email: formData.email });
+        // Add detailed logging
+        console.log("Attempting login with:", { 
+          email: formData.email, 
+          passwordLength: formData.password.length,
+          passwordProvided: formData.password.length > 0
+        });
         
         // Pass credentials as object instead of separate parameters
         const credentials = {
@@ -60,12 +66,16 @@ const Login = () => {
           password: formData.password
         };
         
+        console.log("Sending login request to:", axios.defaults.baseURL + '/api/users/login');
+        
         const response = await login(credentials);
         console.log('Login response:', response);
         
         // If login was successful, user data will be in localStorage
         if (response.success) {
           const userData = JSON.parse(localStorage.getItem('user'));
+          console.log('Retrieved user data after login:', userData);
+          console.log('Password change required?', userData.requirePasswordChange);
           
           // Check if the userData exists and has a role before proceeding
           if (!userData || !userData.role) {
@@ -80,8 +90,11 @@ const Login = () => {
           
           // Handle password change requirement if needed
           if (userData.requirePasswordChange) {
+            console.log(`Redirecting to change-password with userId=${userData._id}`);
             navigate(`/change-password?userId=${userData._id}`);
             return;
+          } else {
+            console.log('No password change required, proceeding to dashboard');
           }
           
           // Navigate based on user role

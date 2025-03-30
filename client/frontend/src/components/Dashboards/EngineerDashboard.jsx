@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import SideNav from '../SideNav';
 import ConfirmationModal from '../ConfirmationModal';
 import { subscribeToTaskUpdates, unsubscribeFromTaskUpdates } from '../../services/socket';
+import SubtaskComments from '../SubtaskComments';
 
 ChartJS.register(
   CategoryScale,
@@ -254,6 +255,8 @@ const EngineerDashboard = () => {
     subtaskData: null
   });
   const [chartData, setChartData] = useState(null);
+  const [expandedSubtasks, setExpandedSubtasks] = useState({});
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -1047,7 +1050,13 @@ const EngineerDashboard = () => {
     setFilteredTasks(sorted);
   };
 
-  const handleSubtaskClick = (subtask, taskId) => {
+  const handleSubtaskClick = (e, subtask, taskId) => {
+    // If clicked on a comment section element, don't trigger status change
+    if (e.target.closest('.subtask-comments-section') || 
+        e.target.classList.contains('toggle-comments-btn')) {
+      return;
+    }
+    
     if (subtask.Status === 'not-started') {
       setConfirmationModal({
         isOpen: true,
@@ -1070,7 +1079,7 @@ const EngineerDashboard = () => {
       const changedBy = currentUser ? 
         `${currentUser.firstname} ${currentUser.lastname}` : 'Unknown';
       
-      const response = await axios.patch(`/api/tasks/${taskId}/subtask/${subtask._id}/status`, {
+      const response = await axios.patch(`/api/tasks/${taskId}/subtask/${subtask.TaskID}/status`, {
         Status: newStatus,
         ChangedBy: changedBy,
         subtaskName: subtask.TaskName,
@@ -1101,15 +1110,39 @@ const EngineerDashboard = () => {
       }
     } catch (error) {
       console.error('Error updating subtask status:', error);
-      console.error('Request details:', {
-        taskId,
-        subtaskId: subtask._id,
-        newStatus,
-        endpoint: `/api/tasks/${taskId}/subtask/${subtask._id}/status` // Log the exact endpoint being used
-      });
-      alert('Failed to update subtask status. Please try again.');
     }
   };
+
+  // Function to toggle subtask expansion for comments
+  const toggleSubtaskExpansion = (subtaskId) => {
+    setExpandedSubtasks(prev => ({
+      ...prev,
+      [subtaskId]: !prev[subtaskId]
+    }));
+  };
+
+  // Function to handle comment updates without full page refresh
+  const handleCommentAdded = useCallback(async (taskId, subtaskId) => {
+    try {
+      // Fetch the specific task with updated comments
+      const response = await axios.get(`/api/tasks/${taskId}`);
+      if (response.data) {
+        // Update the task in the tasks list
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task._id === taskId ? response.data : task
+          )
+        );
+        
+        // Update the selected task if it's currently open
+        if (selectedTask && selectedTask._id === taskId) {
+          setSelectedTask(response.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing task after comment:', error);
+    }
+  }, [selectedTask]);
 
   return (
     <div className="admin-layout">
@@ -1296,13 +1329,12 @@ const EngineerDashboard = () => {
                     <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
                     <div className="subtasks-list">
                       {selectedTask.subtask.map((subtask, index) => (
-                        <div 
-                          key={index} 
-                          className="subtask-item"
-                          onClick={() => handleSubtaskClick(subtask, selectedTask._id)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <div className="subtask-content">
+                        <div key={index} className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''}`}>
+                          <div 
+                            className="subtask-content"
+                            onClick={(e) => handleSubtaskClick(e, subtask, selectedTask._id)}
+                            style={{ cursor: 'pointer' }}
+                          >
                             <span className="subtask-name">{subtask.TaskName}</span>
                             <div className="subtask-badges">
                               <span className={`status-badge ${subtask.Status}`}>
@@ -1316,7 +1348,27 @@ const EngineerDashboard = () => {
                           <div className="subtask-detail">
                             <span className="detail-label">Assigned To:</span>
                             <span className="detail-value">{subtask.AssignedToName || subtask.AssignedTo}</span>
+                            <button 
+                              className="toggle-comments-btn"
+                              onClick={() => toggleSubtaskExpansion(subtask.TaskID)}
+                            >
+                              {expandedSubtasks[subtask.TaskID] ? 'Hide Comments' : 'Show Comments'}
+                              {!expandedSubtasks[subtask.TaskID] && (
+                                <span className="comment-count">
+                                  {subtask.comments && subtask.comments.length > 0 ? subtask.comments.length : '0'}
+                                </span>
+                              )}
+                            </button>
                           </div>
+                          
+                          {expandedSubtasks[subtask.TaskID] && (
+                            <SubtaskComments 
+                              taskId={selectedTask._id} 
+                              subtask={subtask} 
+                              currentUser={currentUser}
+                              onCommentAdded={() => handleCommentAdded(selectedTask._id, subtask.TaskID)}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>

@@ -65,11 +65,30 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
+      console.log('AuthContext: Attempting login with credentials', {
+        email: credentials.email,
+        passwordProvided: !!credentials.password
+      });
+      
       const response = await axios.post('/api/users/login', credentials);
+      console.log('AuthContext: Received response from login endpoint:', {
+        success: !!response.data.token,
+        userData: response.data.user ? 'provided' : 'not provided',
+        status: response.status,
+        requirePasswordChange: response.data.requirePasswordChange,
+        completeResponse: response.data
+      });
+      
       if (response.data.token) {
         // Store token with proper expiration
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Store user data with requirePasswordChange flag
+        const userData = response.data.user;
+        userData.requirePasswordChange = response.data.requirePasswordChange;
+        console.log('Storing user data with requirePasswordChange:', userData);
+        
+        localStorage.setItem('user', JSON.stringify(userData));
         
         // Initialize socket connection with explicit logging
         console.log('Initializing socket after successful login');
@@ -88,6 +107,14 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Login error:', err);
+      console.error('Detailed login error:', {
+        message: err.message,
+        statusCode: err.response?.status,
+        responseData: err.response?.data,
+        axiosConfigUrl: err.config?.url,
+        axiosConfigHeaders: err.config?.headers
+      });
+      
       let errorMessage = 'An error occurred during login.';
       
       if (err.response) {

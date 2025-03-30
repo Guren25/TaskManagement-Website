@@ -90,7 +90,21 @@ const taskSchema = new mongoose.Schema({
         AssignedTo: {
             type: String,
             required: true,
-        }
+        },
+        comments: [{
+            author: {
+                type: String,
+                required: true
+            },
+            text: {
+                type: String,
+                required: true
+            },
+            timestamp: {
+                type: Date,
+                default: Date.now
+            }
+        }]
     }]
 });
 taskSchema.pre('save', async function(next) {
