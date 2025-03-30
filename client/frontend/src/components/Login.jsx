@@ -101,7 +101,6 @@ const Login = () => {
           switch (userData.role.toLowerCase()) {
             case 'admin':
             case 'administrator':
-            case 'manager':
               navigate('/admin/dashboard');
               break;
             case 'engineer':

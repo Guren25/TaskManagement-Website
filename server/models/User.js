@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
     role: {
         type: String,
         required: true,
-        enum: ["manager", "client", "engineer", "admin"],
+        enum: ["client", "engineer", "admin"],
         default: "client",
     },
     isTemporaryPassword: {

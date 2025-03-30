@@ -16,7 +16,7 @@ const PersonnelModal = ({ isOpen, onClose, personnelId, userRole }) => {
     
     // Set user permissions based on role
     setIsAdmin(userRole?.toLowerCase() === 'admin' || userRole?.toLowerCase() === 'administrator');
-    setIsManager(userRole?.toLowerCase() === 'manager' || userRole?.toLowerCase() === 'project manager');
+    setIsManager(false);
   }, [isOpen, personnelId, userRole]);
 
   const fetchPersonnelData = async () => {

@@ -20,8 +20,8 @@ const SideNav = () => {
     navigate('/login');
   };
   
-  // Check if user is admin or manager
-  const isAdminOrManager = userRole === 'admin' || userRole === 'administrator' || userRole === 'manager';
+  // Check if user is admin
+  const isAdmin = userRole === 'admin' || userRole === 'administrator';
   
   return (
     <div className="side-nav">
@@ -41,8 +41,8 @@ const SideNav = () => {
             </svg>
           </NavLink>
           
-          {/* Only show personnel icon for admin and manager roles */}
-          {isAdminOrManager && (
+          {/* Only show personnel icon for admin roles */}
+          {isAdmin && (
             <NavLink 
               to="/admin/personnel" 
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}

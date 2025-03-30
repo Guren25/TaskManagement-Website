@@ -256,7 +256,7 @@ const AdminDashboard = () => {
       // Check user role to determine permissions
       const userRole = userData.role?.toLowerCase();
       setIsUserAdmin(userRole === 'admin' || userRole === 'administrator');
-      setIsUserManager(userRole === 'manager' || userRole === 'project manager');
+      setIsUserManager(false);
     }
   }, []);
 

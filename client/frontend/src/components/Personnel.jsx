@@ -48,7 +48,7 @@ const Personnel = () => {
         if (user) {
             const role = user.role?.toLowerCase();
             setIsAdmin(role === 'admin' || role === 'administrator');
-            setIsManager(role === 'manager' || role === 'project manager');
+            setIsManager(false);
         }
     };
 
@@ -247,7 +247,6 @@ const Personnel = () => {
                             <option value="">All Roles</option>
                             <option value="client">Client</option>
                             <option value="engineer">Engineer</option>
-                            <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
                         </select>
                         
@@ -394,7 +393,6 @@ const Personnel = () => {
                                         <option value="" disabled>Select Role</option>
                                         <option value="client">Client</option>
                                         <option value="engineer">Engineer</option>
-                                        <option value="manager">Manager</option>
                                         <option value="admin">Admin</option>
                                     </select>
                                 </div>
