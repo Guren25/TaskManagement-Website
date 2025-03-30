@@ -296,7 +296,15 @@ const taskController = {
     getTaskByAssignedTo: async (req, res) => {
         try {
             const { AssignedTo } = req.params;
-            const tasks = await Task.find({ AssignedTo });
+            // Use $or to find tasks where either:
+            // 1. The main task is assigned to the engineer
+            // 2. Any subtask is assigned to the engineer
+            const tasks = await Task.find({
+                $or: [
+                    { AssignedTo }, // Main task assigned to the engineer
+                    { 'subtask.AssignedTo': AssignedTo } // Any subtask assigned to the engineer
+                ]
+            });
             res.status(200).json(tasks);
         } catch (error) {
             res.status(500).json({ message: "Error fetching tasks by assigned to", error: error.message });

@@ -2,27 +2,32 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Login.css';
+import Toast from './Toast';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [isError, setIsError] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage('');
-    setIsError(false);
+    setToast({ show: false, message: '', type: 'info' });
 
     try {
       const response = await axios.post('/api/users/forgot-password', { email });
-      setMessage('Password reset instructions have been sent to your email.');
-      setIsError(false);
+      setToast({
+        show: true,
+        message: 'Password reset instructions have been sent to your email.',
+        type: 'success'
+      });
       setEmail('');
     } catch (error) {
-      setMessage(error.response?.data?.message || 'An error occurred. Please try again.');
-      setIsError(true);
+      setToast({
+        show: true,
+        message: error.response?.data?.message || 'An error occurred. Please try again.',
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -32,12 +37,6 @@ const ForgotPassword = () => {
     <div className="auth-login-container">
       <div className="auth-login-form">
         <h2 className="auth-login-title">Reset Password</h2>
-        
-        {message && (
-          <div className={`auth-message ${isError ? 'error' : 'success'}`}>
-            {message}
-          </div>
-        )}
         
         <form onSubmit={handleSubmit}>
           <div className="auth-form-group">
@@ -64,6 +63,13 @@ const ForgotPassword = () => {
           </div>
         </form>
       </div>
+      
+      <Toast 
+        show={toast.show} 
+        message={toast.message} 
+        type={toast.type} 
+        onClose={() => setToast({ ...toast, show: false })} 
+      />
     </div>
   );
 };

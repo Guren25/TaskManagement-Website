@@ -334,6 +334,7 @@ const EngineerDashboard = () => {
               );
               setFilteredTasks(updatedTasks);
               setMetrics(calculateMetrics(updatedTasks));
+              // Update chart data immediately with the new timeRange
               setChartData(prepareChartData(timeRange));
               return updatedTasks;
             });
@@ -371,8 +372,16 @@ const EngineerDashboard = () => {
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
+      // Get the user's email to use in the API call
+      const userEmail = currentUser ? currentUser.email : '';
+      if (!userEmail) {
+        console.error('No user email found, cannot fetch tasks');
+        setIsLoading(false);
+        return;
+      }
+
       const [tasksResponse, usersResponse] = await Promise.all([
-        axios.get('/api/tasks'),
+        axios.get(`/api/tasks/filter/assigned/${encodeURIComponent(userEmail)}`),
         axios.get('/api/users')
       ]);
 
@@ -384,22 +393,19 @@ const EngineerDashboard = () => {
       const currentUserFullName = currentUser ? 
         `${currentUser.firstname} ${currentUser.lastname}` : '';
       
-      const mappedTasks = tasksResponse.data
-        .filter(task => {
-          const taskAssignedTo = userMap[task.AssignedTo] || task.AssignedTo;
-          return taskAssignedTo === currentUserFullName;
-        })
-        .map(task => ({
-          ...task,
-          AssignedTo: userMap[task.AssignedTo] || task.AssignedTo,
-          AssignedBy: userMap[task.AssignedBy] || task.AssignedBy,
-          Client: userMap[task.Client] || task.Client,
-          subtask: task.subtask?.map(sub => ({
-            ...sub,
-            AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
-            AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
-          }))
-        }));
+      // No need to filter by AssignedTo as the API already did that
+      // Just map names for display purposes
+      const mappedTasks = tasksResponse.data.map(task => ({
+        ...task,
+        AssignedTo: userMap[task.AssignedTo] || task.AssignedTo,
+        AssignedBy: userMap[task.AssignedBy] || task.AssignedBy,
+        Client: userMap[task.Client] || task.Client,
+        subtask: task.subtask?.map(sub => ({
+          ...sub,
+          AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
+          AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
+        }))
+      }));
 
       console.log('Fetched tasks for current engineer:', mappedTasks);
       setTasks(mappedTasks);
@@ -419,9 +425,15 @@ const EngineerDashboard = () => {
 
   const fetchActivityLog = async () => {
     try {
-      // Fetch activity logs and users to map emails to names
+      const userEmail = currentUser?.email;
+      if (!userEmail) {
+        console.error('No user email found, cannot fetch activity logs');
+        return;
+      }
+
+      // Fetch activity logs for this engineer using the new endpoint
       const [logsResponse, usersResponse] = await Promise.all([
-        axios.get('/api/activity-logs/recent'),
+        axios.get(`/api/activity-logs/engineer/${encodeURIComponent(userEmail)}`),
         axios.get('/api/users')
       ]);
       
@@ -431,11 +443,7 @@ const EngineerDashboard = () => {
         userMap[user.email] = `${user.firstname} ${user.lastname}`;
       });
       
-      const currentUserFullName = currentUser ? 
-        `${currentUser.firstname} ${currentUser.lastname}` : '';
-      const currentUserEmail = currentUser?.email || '';
-      
-      // First map emails to names in all logs
+      // Map emails to names in all logs
       const mappedLogs = logsResponse.data.map(log => {
         // Replace changedBy email with full name if it exists in userMap
         if (log.changedBy && userMap[log.changedBy]) {
@@ -454,43 +462,8 @@ const EngineerDashboard = () => {
         return log;
       });
       
-      // Filter logs to only show those related to this engineer's tasks
-      const filteredLogs = mappedLogs.filter(log => {
-        // Check if the task in this log is assigned to this engineer
-        const tasksMatchingId = tasks.filter(task => task._id === log.taskID);
-        if (tasksMatchingId.length > 0) {
-          return true; // Log is for a task assigned to this engineer
-        }
-        
-        // Check if the log contains this engineer's name or email in assignedTo
-        if (log.newValue?.AssignedTo) {
-          const assignedTo = log.newValue.AssignedTo;
-          if (assignedTo === currentUserEmail || assignedTo === currentUserFullName) {
-            return true;
-          }
-        }
-        
-        if (log.oldValue?.AssignedTo) {
-          const assignedTo = log.oldValue.AssignedTo;
-          if (assignedTo === currentUserEmail || assignedTo === currentUserFullName) {
-            return true;
-          }
-        }
-        
-        // Check subtasks
-        if (log.newValue?.subtask || log.oldValue?.subtask) {
-          const taskName = log.newValue?.TaskName || log.oldValue?.TaskName;
-          const matchingTask = tasks.find(task => task.TaskName === taskName);
-          if (matchingTask) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
-      
-      setActivityLog(filteredLogs);
-      console.log('Filtered activity logs for engineer:', filteredLogs.length);
+      setActivityLog(mappedLogs);
+      console.log('Fetched activity logs for engineer:', mappedLogs.length);
     } catch (error) {
       console.error('Error fetching activity logs:', error);
     }
@@ -570,9 +543,16 @@ const EngineerDashboard = () => {
 
     const currentUserFullName = currentUser ? 
       `${currentUser.firstname} ${currentUser.lastname}` : '';
+    const currentUserEmail = currentUser?.email || '';
 
     tasks.forEach(task => {
+      // Check if the task is assigned to this engineer OR if they're assigned to any subtask
       const isMyTask = task.AssignedTo === currentUserFullName;
+      // Check for subtasks assigned to the engineer
+      const mySubtasksInTask = task.subtask?.filter(sub => 
+        sub.AssignedTo === currentUserFullName || sub.AssignedTo === currentUserEmail
+      ) || [];
+      const hasMySubtasks = mySubtasksInTask.length > 0;
       
       const getTimeKey = (timestamp) => {
         if (!timestamp) return null;
@@ -591,6 +571,7 @@ const EngineerDashboard = () => {
       
       const creationDate = getTimeKey(task.CreatedAt);
       
+      // Include main tasks assigned to the engineer
       if (isMyTask && creationDate) {
         myCreatedTasksByDate[creationDate] = (myCreatedTasksByDate[creationDate] || 0) + 1;
         
@@ -600,20 +581,24 @@ const EngineerDashboard = () => {
             myCompletedTasksByDate[completionDate] = (myCompletedTasksByDate[completionDate] || 0) + 1;
           }
         }
+      }
 
-        if (task.subtask && task.subtask.length > 0) {
-          const mySubtasks = task.subtask.filter(sub => sub.AssignedTo === currentUserFullName);
-          if (mySubtasks.length > 0 && creationDate) {
-            mySubtasksByDate[creationDate] = (mySubtasksByDate[creationDate] || 0) + mySubtasks.length;
-            
-            // Count completed subtasks
-            const completedMySubtasks = mySubtasks.filter(sub => sub.Status === 'completed').length;
-            if (completedMySubtasks > 0) {
-              const completionDate = getTimeKey(task.UpdatedAt);
-              if (completionDate) {
-                myCompletedTasksByDate[completionDate] = (myCompletedTasksByDate[completionDate] || 0) + completedMySubtasks;
-              }
-            }
+      // Include tasks where the engineer is assigned to a subtask (even if not the main assignee)
+      if (hasMySubtasks && creationDate) {
+        // Only count the task once in "created" if it's not already counted and has subtasks for this engineer
+        if (!isMyTask) {
+          myCreatedTasksByDate[creationDate] = (myCreatedTasksByDate[creationDate] || 0) + 1;
+        }
+        
+        // Count all subtasks assigned to this engineer
+        mySubtasksByDate[creationDate] = (mySubtasksByDate[creationDate] || 0) + mySubtasksInTask.length;
+        
+        // Count completed subtasks
+        const completedMySubtasks = mySubtasksInTask.filter(sub => sub.Status === 'completed').length;
+        if (completedMySubtasks > 0) {
+          const completionDate = getTimeKey(task.UpdatedAt);
+          if (completionDate) {
+            myCompletedTasksByDate[completionDate] = (myCompletedTasksByDate[completionDate] || 0) + completedMySubtasks;
           }
         }
       }
@@ -1148,7 +1133,12 @@ const EngineerDashboard = () => {
                 <div className="period-selector">
                   <select 
                     value={timeRange} 
-                    onChange={(e) => setTimeRange(Number(e.target.value))}
+                    onChange={(e) => {
+                      const newRange = Number(e.target.value);
+                      setTimeRange(newRange);
+                      // Trigger a refresh of the data when range changes
+                      setChartData(prepareChartData(newRange));
+                    }}
                     className="range-select"
                   >
                     <option value={1}>Last 24 hours</option>
