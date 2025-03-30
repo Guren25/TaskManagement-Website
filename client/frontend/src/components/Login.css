@@ -234,3 +234,21 @@
 .password-toggle-icon.fa-eye-slash::before {
   content: "\f070"; /* eye-slash icon */
 }
+
+.auth-info-box {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #1976d2;
+}
+
+.auth-info-box p {
+  margin: 4px 0;
+}
+
+.auth-info-box strong {
+  font-weight: 600;
+}

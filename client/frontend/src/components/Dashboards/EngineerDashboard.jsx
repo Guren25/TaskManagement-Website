@@ -431,7 +431,11 @@ const EngineerDashboard = () => {
         userMap[user.email] = `${user.firstname} ${user.lastname}`;
       });
       
-      // Map emails to names in the activity logs
+      const currentUserFullName = currentUser ? 
+        `${currentUser.firstname} ${currentUser.lastname}` : '';
+      const currentUserEmail = currentUser?.email || '';
+      
+      // First map emails to names in all logs
       const mappedLogs = logsResponse.data.map(log => {
         // Replace changedBy email with full name if it exists in userMap
         if (log.changedBy && userMap[log.changedBy]) {
@@ -450,7 +454,43 @@ const EngineerDashboard = () => {
         return log;
       });
       
-      setActivityLog(mappedLogs);
+      // Filter logs to only show those related to this engineer's tasks
+      const filteredLogs = mappedLogs.filter(log => {
+        // Check if the task in this log is assigned to this engineer
+        const tasksMatchingId = tasks.filter(task => task._id === log.taskID);
+        if (tasksMatchingId.length > 0) {
+          return true; // Log is for a task assigned to this engineer
+        }
+        
+        // Check if the log contains this engineer's name or email in assignedTo
+        if (log.newValue?.AssignedTo) {
+          const assignedTo = log.newValue.AssignedTo;
+          if (assignedTo === currentUserEmail || assignedTo === currentUserFullName) {
+            return true;
+          }
+        }
+        
+        if (log.oldValue?.AssignedTo) {
+          const assignedTo = log.oldValue.AssignedTo;
+          if (assignedTo === currentUserEmail || assignedTo === currentUserFullName) {
+            return true;
+          }
+        }
+        
+        // Check subtasks
+        if (log.newValue?.subtask || log.oldValue?.subtask) {
+          const taskName = log.newValue?.TaskName || log.oldValue?.TaskName;
+          const matchingTask = tasks.find(task => task.TaskName === taskName);
+          if (matchingTask) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+      
+      setActivityLog(filteredLogs);
+      console.log('Filtered activity logs for engineer:', filteredLogs.length);
     } catch (error) {
       console.error('Error fetching activity logs:', error);
     }

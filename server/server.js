@@ -10,6 +10,8 @@ const cron = require('node-cron');
 const TaskController = require('./controllers/TaskController');
 const http = require('http');
 const socketIo = require('socket.io');
+const bcrypt = require('bcryptjs');
+const User = require('./models/User');
 
 // Configure CORS to allow requests from the frontend
 app.use(cors({
@@ -21,6 +23,48 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Function to create initial admin user if no users exist
+const createDefaultAdminUser = async () => {
+  try {
+    const userCount = await User.countDocuments();
+    
+    if (userCount === 0) {
+      console.log('No users found in database. Creating default admin user...');
+      
+      // Hardcoded admin credentials as requested
+      const adminData = {
+        firstname: 'Admin',
+        lastname: 'User',
+        middlename: '',
+        email: 'schedulingapp77@gmail.com',
+        phone: '1234567890',
+        role: 'admin',
+        status: 'verified',
+        isTemporaryPassword: false
+      };
+      
+      // Use the specified password
+      const password = 'adminscheduling123';
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      
+      // Create the admin user
+      const adminUser = new User({
+        ...adminData,
+        password: hashedPassword
+      });
+      
+      await adminUser.save();
+      
+      console.log('✅ Default admin user created successfully');
+      console.log('📧 Email:', adminData.email);
+      console.log('🔑 Password: adminscheduling123');
+    }
+  } catch (error) {
+    console.error('Error creating default admin user:', error);
+  }
+};
+
 const connectDB = async () => {
     try {
         if (!process.env.MONGODB_URI) {
@@ -28,6 +72,9 @@ const connectDB = async () => {
         }
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected to MongoDB');
+        
+        // Check and create default admin user if needed
+        await createDefaultAdminUser();
     } catch (err) {
         console.error('MongoDB Connection Error:', err);
         process.exit(1);
