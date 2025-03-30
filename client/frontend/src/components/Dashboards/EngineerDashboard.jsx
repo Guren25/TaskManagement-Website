@@ -1031,14 +1031,20 @@ const EngineerDashboard = () => {
         isOpen: true,
         message: `Do you want to start working on subtask "${subtask.TaskName}"?`,
         confirmText: 'Start Task',
-        onConfirm: () => updateSubtaskStatus(taskId, subtask, 'in-progress')
+        onConfirm: async () => {
+          await updateSubtaskStatus(taskId, subtask, 'in-progress');
+          setConfirmationModal({ isOpen: false, message: '', onConfirm: null });
+        }
       });
     } else if (subtask.Status === 'in-progress') {
       setConfirmationModal({
         isOpen: true,
         message: `Have you completed subtask "${subtask.TaskName}"?`,
         confirmText: 'Mark as Complete',
-        onConfirm: () => updateSubtaskStatus(taskId, subtask, 'completed')
+        onConfirm: async () => {
+          await updateSubtaskStatus(taskId, subtask, 'completed');
+          setConfirmationModal({ isOpen: false, message: '', onConfirm: null });
+        }
       });
     }
   };
@@ -1107,7 +1113,7 @@ const EngineerDashboard = () => {
           isOpen: true,
           message: "Permission denied: You can only update subtasks assigned to you.",
           confirmText: "OK",
-          onConfirm: () => setConfirmationModal({ isOpen: false, message: '', onConfirm: null })
+          onConfirm: () => setConfirmationModal({ isOpen: false, message: '', onConfirm: null, subtaskData: null })
         });
       }
     }
