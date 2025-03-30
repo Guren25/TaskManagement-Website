@@ -30,6 +30,10 @@
   background-color: #3A7D44;
 }
 
+.toast-container.warning {
+  background-color: #2E7D32;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

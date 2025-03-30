@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './TaskModal.css';
+import Toast from './Toast';
 
 const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -26,6 +27,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
   const [subtasks, setSubtasks] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'warning' });
 
   useEffect(() => {
     if (isOpen) {
@@ -127,12 +129,18 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
     }
   }, [engineers, subtasks.length]);
 
+  // Replace addNotification with showToast
+  const showToast = (message, type = 'warning') => {
+    setToast({ show: true, message, type });
+  };
+
   // Fill in client and engineer information when they're loaded
   useEffect(() => {
     if ((engineers.length > 0 || clients.length > 0) && taskData) {
       console.log('Updating task data with engineer/client info, current data:', taskData);
       let updatedTaskData = { ...taskData };
       let updated = false;
+      let removedUsers = [];
 
       // Match engineer data
       if (engineers.length > 0 && taskData.AssignedTo) {
@@ -152,6 +160,16 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
             ...updatedTaskData,
             AssignedTo: engineer.email,
             AssignedToName: engineer.fullName
+          };
+          updated = true;
+        } else if (isEditMode && taskData.AssignedToName) {
+          // Engineer assigned to this task is no longer in the list (likely deactivated)
+          console.log('Engineer not found in available engineers list (may be deactivated)');
+          removedUsers.push(`Engineer ${taskData.AssignedToName}`);
+          updatedTaskData = {
+            ...updatedTaskData,
+            AssignedTo: '',
+            AssignedToName: ''
           };
           updated = true;
         }
@@ -177,7 +195,21 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
             ClientName: client.fullName
           };
           updated = true;
+        } else if (isEditMode && taskData.ClientName) {
+          // Client assigned to this task is no longer in the list (likely deactivated)
+          console.log('Client not found in available clients list (may be deactivated)');
+          removedUsers.push(`Client ${taskData.ClientName}`);
+          updatedTaskData = {
+            ...updatedTaskData,
+            Client: '',
+            ClientName: ''
+          };
+          updated = true;
         }
+      }
+
+      if (removedUsers.length > 0) {
+        showToast(`${removedUsers.join(' and ')} ${removedUsers.length > 1 ? 'have' : 'has'} been removed from this task because ${removedUsers.length > 1 ? 'their accounts are' : 'the account is'} no longer active.`, 'warning');
       }
 
       if (updated) {
@@ -185,13 +217,15 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
         setTaskData(updatedTaskData);
       }
     }
-  }, [engineers, clients, taskData?.AssignedTo, taskData?.Client]);
+  }, [engineers, clients, taskData?.AssignedTo, taskData?.Client, isEditMode]);
   
   // Update subtask engineer assignments when engineers are loaded
   useEffect(() => {
     if (engineers.length > 0 && subtasks.length > 0) {
       console.log('Updating subtask engineer info, current subtasks:', subtasks);
       console.log('Available engineers:', engineers.map(e => ({email: e.email, name: e.fullName})));
+      
+      let removedSubtaskEngineers = [];
       
       const updatedSubtasks = subtasks.map(subtask => {
         if (subtask.AssignedTo) {
@@ -210,15 +244,35 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
               AssignedTo: engineer.email,
               AssignedToName: engineer.fullName
             };
+          } else if (isEditMode && subtask.AssignedToName) {
+            // Engineer assigned to this subtask is no longer in the list (likely deactivated)
+            console.log(`Engineer for subtask "${subtask.TaskName}" not found (may be deactivated)`);
+            removedSubtaskEngineers.push({
+              name: subtask.AssignedToName,
+              task: subtask.TaskName
+            });
+            return {
+              ...subtask,
+              AssignedTo: '',
+              AssignedToName: ''
+            };
           }
         }
         return subtask;
       });
       
+      if (removedSubtaskEngineers.length > 0) {
+        if (removedSubtaskEngineers.length === 1) {
+          showToast(`${removedSubtaskEngineers[0].name} has been removed from subtask "${removedSubtaskEngineers[0].task}" because their account is no longer active.`, 'warning');
+        } else {
+          showToast(`${removedSubtaskEngineers.length} engineers have been removed from subtasks because their accounts are no longer active.`, 'warning');
+        }
+      }
+      
       console.log('Updated subtasks:', updatedSubtasks);
       setSubtasks(updatedSubtasks);
     }
-  }, [engineers, subtasks.length]);
+  }, [engineers, subtasks.length, isEditMode]);
 
   const getCurrentUser = () => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -263,6 +317,17 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
       console.log('Filtered out engineers:', response.data.filter(eng => eng.status !== "verified").map(eng => `${eng.firstname} ${eng.lastname} (${eng.status})`));
       
       setEngineers(formattedEngineers);
+
+      // If we're in edit mode, check if assigned engineer was filtered out
+      if (isEditMode && taskData.AssignedTo) {
+        const engineerExists = formattedEngineers.some(
+          eng => eng.email === taskData.AssignedTo
+        );
+        
+        if (!engineerExists) {
+          console.log('Warning: Assigned engineer is deactivated/unverified and will be removed from task');
+        }
+      }
     } catch (error) {
       console.error('Error fetching engineers:', error);
     }
@@ -287,6 +352,17 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
       console.log('Filtered out clients:', response.data.filter(client => client.status !== "verified").map(client => `${client.firstname} ${client.lastname} (${client.status})`));
       
       setClients(formattedClients);
+
+      // If we're in edit mode, check if assigned client was filtered out
+      if (isEditMode && taskData.Client) {
+        const clientExists = formattedClients.some(
+          client => client.email === taskData.Client
+        );
+        
+        if (!clientExists) {
+          console.log('Warning: Assigned client is deactivated/unverified and will be removed from task');
+        }
+      }
     } catch (error) {
       console.error('Error fetching clients:', error);
     }
@@ -830,6 +906,13 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
           </div>
         </form>
       </div>
+
+      <Toast 
+        show={toast.show} 
+        message={toast.message} 
+        type={toast.type} 
+        onClose={() => setToast({ ...toast, show: false })} 
+      />
     </div>
   );
 };
