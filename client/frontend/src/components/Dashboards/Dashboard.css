@@ -1701,13 +1701,13 @@ input[type="date"].filter-select {
 .task-date {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  color: #6e6e73;
+  margin-right: 1rem;
 }
 
 .date-label {
   font-weight: 500;
-  color: #1d1d1f;
+  margin-right: 0.25rem;
+  color: #555;
 }
 
 .filter-select.sort-select {

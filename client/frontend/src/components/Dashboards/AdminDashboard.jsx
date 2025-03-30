@@ -69,6 +69,9 @@ const TaskCard = ({ task, onTaskClick }) => {
             </div>
             <div className="task-meta">
               <span className="task-date">
+                <span className="date-label">Created:</span> {task.CreatedAt ? formatDate(task.CreatedAt) : 'N/A'}
+              </span>
+              <span className="task-date">
                 <span className="date-label">Start:</span> {formatDate(task.StartDate)}
               </span>
               <span className="task-date">
@@ -1143,8 +1146,8 @@ const AdminDashboard = () => {
                     <span className="detail-value">{selectedTask.TaskID}</span>
                   </div>
                   <div className="task-detail-row">
-                    <span className="detail-label">Assigned To:</span>
-                    <span className="detail-value">{selectedTask.AssignedToName || selectedTask.AssignedTo}</span>
+                    <span className="detail-label">Created Date:</span>
+                    <span className="detail-value">{selectedTask.CreatedAt ? formatDate(selectedTask.CreatedAt) : 'N/A'}</span>
                   </div>
                   <div className="task-detail-row">
                     <span className="detail-label">Start Date:</span>
@@ -1153,6 +1156,10 @@ const AdminDashboard = () => {
                   <div className="task-detail-row">
                     <span className="detail-label">End Date:</span>
                     <span className="detail-value">{formatDate(selectedTask.EndDate)}</span>
+                  </div>
+                  <div className="task-detail-row">
+                    <span className="detail-label">Assigned To:</span>
+                    <span className="detail-value">{selectedTask.AssignedToName || selectedTask.AssignedTo}</span>
                   </div>
                   <div className="task-detail-row">
                     <span className="detail-label">Description:</span>
