@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import SideNav from '../SideNav';
 import { subscribeToTaskUpdates, unsubscribeFromTaskUpdates } from '../../services/socket';
 import SubtaskComments from '../SubtaskComments';
+import LogEntry from '../LogEntry';
 
 ChartJS.register(
   CategoryScale,
@@ -134,58 +135,6 @@ const MetricCard = ({ value, label }) => (
   </div>
 );
 
-const LogEntry = ({ log }) => {
-  const getTimeAgo = (timestamp) => {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffInSeconds = Math.floor((now - past) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  };
-
-
-  if (log.newValue?.type === 'due_date_notification') {
-    return (
-      <div className="log-entry reminder">
-        <div className="log-title">
-          <span className="task-name">{log.newValue.message}</span>
-          <span className="log-badge reminder">Reminder</span>
-        </div>
-        <div className="log-footer">
-          <span className="log-user">System</span>
-          <span className="log-time">{getTimeAgo(log.timestamp)}</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="log-entry">
-      <div className="log-title">
-        <span className="task-name">{log.newValue?.TaskName || log.taskName}</span>
-        <span className={`log-badge ${log.changeType?.toLowerCase()}`}>
-          {log.changeType?.toLowerCase()}
-        </span>
-      </div>
-      
-      {log.oldValue && log.newValue && ['Status'].includes(Object.keys(log.oldValue)[0]) && (
-        <div className="status-change">
-          <span className="old-status">{log.oldValue.Status}</span>
-          <span className="new-status">{log.newValue.Status}</span>
-        </div>
-      )}
-      
-      <div className="log-footer">
-        <span className="log-user">{log.changedBy}</span>
-        <span className="log-time">{getTimeAgo(log.timestamp)}</span>
-      </div>
-    </div>
-  );
-};
-
 const ClientDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
@@ -283,79 +232,111 @@ const ClientDashboard = () => {
     fetchTasks().then(() => fetchActivityLog());
     
     // Subscribe to real-time task updates
-    const handleTaskUpdate = (type, data) => {
+    const handleTaskUpdate = async (type, data) => {
       console.log(`Real-time ${type} task:`, data);
       
-      // For client dashboard, only process tasks where this client is the client
-      const currentUserFullName = currentUser ? 
-        `${currentUser.firstname} ${currentUser.lastname}` : '';
-      const currentUserEmail = currentUser?.email;
-      
-      // Check if this client is the client for the task
-      const isTaskForClient = (task) => {
-        return task.Client === currentUserFullName || task.Client === currentUserEmail;
-      };
-      
-      if (type === 'created' && isTaskForClient(data)) {
-        setTasks(prevTasks => {
-          const updatedTasks = [...prevTasks, data];
-          setFilteredTasks(updatedTasks);
-          setMetrics(calculateMetrics(updatedTasks));
-          setChartData(prepareChartData(timeRange));
-          return updatedTasks;
+      try {
+        // Get the latest user data to map emails to names for real-time updates
+        const usersResponse = await axios.get('/api/users');
+        const userMap = {};
+        usersResponse.data.forEach(user => {
+          userMap[user.email] = `${user.firstname} ${user.lastname}`;
         });
-      } 
-      else if (type === 'updated') {
-        // Check if this task was or is now for this client
-        const wasForClient = tasks.some(task => task._id === data._id);
         
-        if (wasForClient || isTaskForClient(data)) {
+        // Create a function to map task data
+        const mapTaskData = (task) => ({
+          ...task,
+          AssignedTo: userMap[task.AssignedTo] || task.AssignedTo,
+          AssignedBy: userMap[task.AssignedBy] || task.AssignedBy,
+          Client: userMap[task.Client] || task.Client,
+          subtask: task.subtask?.map(sub => ({
+            ...sub,
+            AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
+            AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
+          }))
+        });
+      
+        // For client dashboard, only process tasks where this client is the client
+        const currentUserFullName = currentUser ? 
+          `${currentUser.firstname} ${currentUser.lastname}` : '';
+        const currentUserEmail = currentUser?.email;
+        
+        // Check if this client is the client for the task
+        const isTaskForClient = (task) => {
+          const taskClient = userMap[task.Client] || task.Client;
+          return taskClient === currentUserFullName || task.Client === currentUserEmail;
+        };
+        
+        if (type === 'created') {
+          // Map the data first to ensure we're checking against the right names
+          const taskWithNames = mapTaskData(data);
+          if (isTaskForClient(taskWithNames)) {
+            setTasks(prevTasks => {
+              const updatedTasks = [...prevTasks, taskWithNames];
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            });
+          }
+        } 
+        else if (type === 'updated') {
+          // Map the data first
+          const taskWithNames = mapTaskData(data);
+          
+          // Check if this task was or is now for this client
+          const wasForClient = tasks.some(task => task._id === data._id);
+          
+          if (wasForClient || isTaskForClient(taskWithNames)) {
+            setTasks(prevTasks => {
+              // If wasForClient but no longer is, filter it out
+              if (wasForClient && !isTaskForClient(taskWithNames)) {
+                const updatedTasks = prevTasks.filter(task => task._id !== data._id);
+                setFilteredTasks(updatedTasks);
+                setMetrics(calculateMetrics(updatedTasks));
+                setChartData(prepareChartData(timeRange));
+                return updatedTasks;
+              }
+              
+              // If wasn't for client but now is, add it
+              if (!wasForClient && isTaskForClient(taskWithNames)) {
+                const updatedTasks = [...prevTasks, taskWithNames];
+                setFilteredTasks(updatedTasks);
+                setMetrics(calculateMetrics(updatedTasks));
+                setChartData(prepareChartData(timeRange));
+                return updatedTasks;
+              }
+              
+              // Otherwise just update the existing task
+              const updatedTasks = prevTasks.map(task => 
+                task._id === data._id ? taskWithNames : task
+              );
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            });
+          }
+        }
+        else if (type === 'deleted') {
           setTasks(prevTasks => {
-            // If wasForClient but no longer is, filter it out
-            if (wasForClient && !isTaskForClient(data)) {
+            // Only remove if it exists in the current task list
+            if (prevTasks.some(task => task._id === data._id)) {
               const updatedTasks = prevTasks.filter(task => task._id !== data._id);
               setFilteredTasks(updatedTasks);
               setMetrics(calculateMetrics(updatedTasks));
               setChartData(prepareChartData(timeRange));
               return updatedTasks;
             }
-            
-            // If wasn't for client but now is, add it
-            if (!wasForClient && isTaskForClient(data)) {
-              const updatedTasks = [...prevTasks, data];
-              setFilteredTasks(updatedTasks);
-              setMetrics(calculateMetrics(updatedTasks));
-              setChartData(prepareChartData(timeRange));
-              return updatedTasks;
-            }
-            
-            // Otherwise just update the existing task
-            const updatedTasks = prevTasks.map(task => 
-              task._id === data._id ? data : task
-            );
-            setFilteredTasks(updatedTasks);
-            setMetrics(calculateMetrics(updatedTasks));
-            setChartData(prepareChartData(timeRange));
-            return updatedTasks;
+            return prevTasks;
           });
         }
+        
+        // Refresh activity logs to get the latest entries with proper name mapping
+        fetchActivityLog();
+      } catch (error) {
+        console.error('Error processing real-time task update:', error);
       }
-      else if (type === 'deleted') {
-        setTasks(prevTasks => {
-          // Only remove if it exists in the current task list
-          if (prevTasks.some(task => task._id === data._id)) {
-            const updatedTasks = prevTasks.filter(task => task._id !== data._id);
-            setFilteredTasks(updatedTasks);
-            setMetrics(calculateMetrics(updatedTasks));
-            setChartData(prepareChartData(timeRange));
-            return updatedTasks;
-          }
-          return prevTasks;
-        });
-      }
-      
-      // Refresh activity logs
-      fetchActivityLog();
     };
     
     subscribeToTaskUpdates(handleTaskUpdate);
@@ -425,12 +406,43 @@ const ClientDashboard = () => {
 
   const fetchActivityLog = async () => {
     try {
-      const response = await axios.get('/api/activity-logs/recent');
+      // Fetch activity logs and users to map emails to names
+      const [logsResponse, usersResponse] = await Promise.all([
+        axios.get('/api/activity-logs/recent'),
+        axios.get('/api/users')
+      ]);
+      
+      // Create user email to name mapping
+      const userMap = {};
+      usersResponse.data.forEach(user => {
+        userMap[user.email] = `${user.firstname} ${user.lastname}`;
+      });
+      
       const currentUserFullName = currentUser ? 
         `${currentUser.firstname} ${currentUser.lastname}` : '';
       const currentUserEmail = currentUser?.email || '';
       
-      const filteredLogs = response.data.filter(log => {
+      // First map emails to names in all logs
+      const mappedLogs = logsResponse.data.map(log => {
+        // Replace changedBy email with full name if it exists in userMap
+        if (log.changedBy && userMap[log.changedBy]) {
+          log.changedBy = userMap[log.changedBy];
+        }
+        
+        // If there are client emails in the log, map them to names
+        if (log.newValue?.Client && userMap[log.newValue.Client]) {
+          log.newValue.Client = userMap[log.newValue.Client];
+        }
+        
+        if (log.oldValue?.Client && userMap[log.oldValue.Client]) {
+          log.oldValue.Client = userMap[log.oldValue.Client];
+        }
+        
+        return log;
+      });
+      
+      // Then filter logs that are relevant to this client
+      const filteredLogs = mappedLogs.filter(log => {
         // Include notifications
         if (log.newValue?.type === 'due_date_notification') {
           const taskClient = log.taskClient || log.newValue.taskClient;
@@ -818,29 +830,43 @@ const ClientDashboard = () => {
     }
   };
 
-  const handleTaskCreated = (newTask) => {
-    // Format the task with full names
-    const taskWithNames = {
-      ...newTask,
-      AssignedTo: newTask.AssignedTo,
-      AssignedBy: `${currentUser.firstname} ${currentUser.lastname}`,
-      subtask: newTask.subtask?.map(sub => ({
-        ...sub,
-        AssignedTo: sub.AssignedTo
-      }))
-    };
+  const handleTaskCreated = async (newTask) => {
+    try {
+      // Fetch latest user data to map emails to names
+      const usersResponse = await axios.get('/api/users');
+      const userMap = {};
+      usersResponse.data.forEach(user => {
+        userMap[user.email] = `${user.firstname} ${user.lastname}`;
+      });
 
-    setTasks(prevTasks => {
-      const updatedTasks = [...prevTasks, taskWithNames];
-      setFilteredTasks(updatedTasks);
-      setMetrics(calculateMetrics(updatedTasks));
-      // Update chart data immediately
-      setChartData(prepareChartData(timeRange));
-      return updatedTasks;
-    });
-    
-    // Fetch updated activity logs
-    fetchActivityLog();
+      // Map emails to full names
+      const taskWithNames = {
+        ...newTask,
+        // Map email to name if it's an email, otherwise keep the existing value
+        AssignedTo: userMap[newTask.AssignedTo] || newTask.AssignedToName || newTask.AssignedTo || '',
+        AssignedBy: userMap[newTask.AssignedBy] || newTask.AssignedByName || newTask.AssignedBy || 
+                   (currentUser ? `${currentUser.firstname} ${currentUser.lastname}` : ''),
+        Client: userMap[newTask.Client] || newTask.ClientName || newTask.Client || '',
+        subtask: (newTask.subtask || []).map(sub => ({
+          ...sub,
+          AssignedTo: userMap[sub.AssignedTo] || sub.AssignedToName || sub.AssignedTo || ''
+        }))
+      };
+
+      setTasks(prevTasks => {
+        const updatedTasks = [...prevTasks, taskWithNames];
+        setFilteredTasks(updatedTasks);
+        setMetrics(calculateMetrics(updatedTasks));
+        // Update chart data immediately
+        setChartData(prepareChartData(timeRange));
+        return updatedTasks;
+      });
+      
+      // Fetch the activity logs from server instead of creating client-side logs
+      fetchActivityLog();
+    } catch (error) {
+      console.error('Error processing new task:', error);
+    }
   };
 
   const handleTaskUpdated = (updatedTask) => {

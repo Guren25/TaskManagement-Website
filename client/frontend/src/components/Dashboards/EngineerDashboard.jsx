@@ -19,6 +19,7 @@ import SideNav from '../SideNav';
 import ConfirmationModal from '../ConfirmationModal';
 import { subscribeToTaskUpdates, unsubscribeFromTaskUpdates } from '../../services/socket';
 import SubtaskComments from '../SubtaskComments';
+import LogEntry from '../LogEntry';
 
 ChartJS.register(
   CategoryScale,
@@ -135,87 +136,6 @@ const MetricCard = ({ value, label }) => (
   </div>
 );
 
-const LogEntry = ({ log }) => {
-  const getTimeAgo = (timestamp) => {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffInSeconds = Math.floor((now - past) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  };
-
-
-  if (log.newValue?.type === 'due_date_notification') {
-    return (
-      <div className="log-entry reminder">
-        <div className="log-title">
-          <span className="task-name">{log.newValue.message}</span>
-          <span className="log-badge reminder">Reminder</span>
-        </div>
-        <div className="log-footer">
-          <span className="log-user">System</span>
-          <span className="log-time">{getTimeAgo(log.timestamp)}</span>
-        </div>
-      </div>
-    );
-  }
-  
-  // Special handling for subtask status changes
-  if (log.changeType === 'SubtaskStatusUpdated' || log.subtaskName) {
-    return (
-      <div className="log-entry">
-        <div className="log-title">
-          <span className="task-name">
-            {log.subtaskName ? `Subtask: ${log.subtaskName}` : 'Subtask'} 
-            {log.taskName ? ` (in ${log.taskName})` : ''}
-          </span>
-          <span className={`log-badge ${log.changeType?.toLowerCase() || 'updated'}`}>
-            {log.changeType?.toLowerCase() || 'status changed'}
-          </span>
-        </div>
-        
-        {log.oldValue && log.newValue && (
-          <div className="status-change">
-            <span className="old-status">{log.oldValue.Status || log.oldStatus}</span>
-            <span className="new-status">{log.newValue.Status || log.newStatus}</span>
-          </div>
-        )}
-        
-        <div className="log-footer">
-          <span className="log-user">{log.changedBy}</span>
-          <span className="log-time">{getTimeAgo(log.timestamp)}</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="log-entry">
-      <div className="log-title">
-        <span className="task-name">{log.newValue?.TaskName || log.taskName}</span>
-        <span className={`log-badge ${log.changeType?.toLowerCase()}`}>
-          {log.changeType?.toLowerCase()}
-        </span>
-      </div>
-      
-      {log.oldValue && log.newValue && ['Status'].includes(Object.keys(log.oldValue)[0]) && (
-        <div className="status-change">
-          <span className="old-status">{log.oldValue.Status}</span>
-          <span className="new-status">{log.newValue.Status}</span>
-        </div>
-      )}
-      
-      <div className="log-footer">
-        <span className="log-user">{log.changedBy}</span>
-        <span className="log-time">{getTimeAgo(log.timestamp)}</span>
-      </div>
-    </div>
-  );
-};
-
 const EngineerDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
@@ -320,89 +240,124 @@ const EngineerDashboard = () => {
     fetchTasks().then(() => fetchActivityLog());
     
     // Subscribe to real-time task updates
-    const handleTaskUpdate = (type, data) => {
+    const handleTaskUpdate = async (type, data) => {
       console.log(`Real-time ${type} task:`, data);
       
-      // For engineer dashboard, only process tasks assigned to this engineer
-      const currentUserFullName = currentUser ? 
-        `${currentUser.firstname} ${currentUser.lastname}` : '';
-      const currentUserEmail = currentUser?.email;
-      
-      // Check if the task or any of its subtasks are assigned to this engineer
-      const isTaskForEngineer = (task) => {
-        if (task.AssignedTo === currentUserFullName || task.AssignedTo === currentUserEmail) {
-          return true;
-        }
-        
-        if (task.subtask && task.subtask.length > 0) {
-          return task.subtask.some(sub => 
-            sub.AssignedTo === currentUserFullName || sub.AssignedTo === currentUserEmail
-          );
-        }
-        
-        return false;
-      };
-      
-      if (type === 'created' && isTaskForEngineer(data)) {
-        setTasks(prevTasks => {
-          const updatedTasks = [...prevTasks, data];
-          setFilteredTasks(updatedTasks);
-          setMetrics(calculateMetrics(updatedTasks));
-          setChartData(prepareChartData(timeRange));
-          return updatedTasks;
+      try {
+        // Get the latest user data to map emails to names for real-time updates
+        const usersResponse = await axios.get('/api/users');
+        const userMap = {};
+        usersResponse.data.forEach(user => {
+          userMap[user.email] = `${user.firstname} ${user.lastname}`;
         });
-      } 
-      else if (type === 'updated') {
-        // Check if this task was or is now assigned to this engineer
-        const wasAssigned = tasks.some(task => task._id === data._id);
         
-        if (wasAssigned || isTaskForEngineer(data)) {
+        // Create a function to map task data
+        const mapTaskData = (task) => ({
+          ...task,
+          AssignedTo: userMap[task.AssignedTo] || task.AssignedTo,
+          AssignedBy: userMap[task.AssignedBy] || task.AssignedBy,
+          Client: userMap[task.Client] || task.Client,
+          subtask: task.subtask?.map(sub => ({
+            ...sub,
+            AssignedTo: userMap[sub.AssignedTo] || sub.AssignedTo,
+            AssignedBy: userMap[sub.AssignedBy] || sub.AssignedBy
+          }))
+        });
+      
+        // For engineer dashboard, only process tasks assigned to this engineer
+        const currentUserFullName = currentUser ? 
+          `${currentUser.firstname} ${currentUser.lastname}` : '';
+        const currentUserEmail = currentUser?.email;
+        
+        // Check if the task or any of its subtasks are assigned to this engineer
+        const isTaskForEngineer = (task) => {
+          // Check if the task is directly assigned to this engineer
+          const taskAssignedTo = userMap[task.AssignedTo] || task.AssignedTo;
+          if (taskAssignedTo === currentUserFullName || task.AssignedTo === currentUserEmail) {
+            return true;
+          }
+          
+          // Check if any subtask is assigned to this engineer
+          if (task.subtask && task.subtask.length > 0) {
+            return task.subtask.some(sub => {
+              const subAssignedTo = userMap[sub.AssignedTo] || sub.AssignedTo;
+              return subAssignedTo === currentUserFullName || sub.AssignedTo === currentUserEmail;
+            });
+          }
+          
+          return false;
+        };
+        
+        if (type === 'created') {
+          // Map the task data before checking if it's for this engineer
+          const taskWithNames = mapTaskData(data);
+          if (isTaskForEngineer(taskWithNames)) {
+            setTasks(prevTasks => {
+              const updatedTasks = [...prevTasks, taskWithNames];
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            });
+          }
+        } 
+        else if (type === 'updated') {
+          // Map the task data before checking assignment
+          const taskWithNames = mapTaskData(data);
+          
+          // Check if this task was or is now assigned to this engineer
+          const wasAssigned = tasks.some(task => task._id === data._id);
+          
+          if (wasAssigned || isTaskForEngineer(taskWithNames)) {
+            setTasks(prevTasks => {
+              // If wasAssigned but no longer is, filter it out
+              if (wasAssigned && !isTaskForEngineer(taskWithNames)) {
+                const updatedTasks = prevTasks.filter(task => task._id !== data._id);
+                setFilteredTasks(updatedTasks);
+                setMetrics(calculateMetrics(updatedTasks));
+                setChartData(prepareChartData(timeRange));
+                return updatedTasks;
+              }
+              
+              // If wasn't assigned but now is, add it
+              if (!wasAssigned && isTaskForEngineer(taskWithNames)) {
+                const updatedTasks = [...prevTasks, taskWithNames];
+                setFilteredTasks(updatedTasks);
+                setMetrics(calculateMetrics(updatedTasks));
+                setChartData(prepareChartData(timeRange));
+                return updatedTasks;
+              }
+              
+              // Otherwise just update the existing task
+              const updatedTasks = prevTasks.map(task => 
+                task._id === data._id ? taskWithNames : task
+              );
+              setFilteredTasks(updatedTasks);
+              setMetrics(calculateMetrics(updatedTasks));
+              setChartData(prepareChartData(timeRange));
+              return updatedTasks;
+            });
+          }
+        }
+        else if (type === 'deleted') {
           setTasks(prevTasks => {
-            // If wasAssigned but no longer is, filter it out
-            if (wasAssigned && !isTaskForEngineer(data)) {
+            // Only remove if it exists in the current task list
+            if (prevTasks.some(task => task._id === data._id)) {
               const updatedTasks = prevTasks.filter(task => task._id !== data._id);
               setFilteredTasks(updatedTasks);
               setMetrics(calculateMetrics(updatedTasks));
               setChartData(prepareChartData(timeRange));
               return updatedTasks;
             }
-            
-            // If wasn't assigned but now is, add it
-            if (!wasAssigned && isTaskForEngineer(data)) {
-              const updatedTasks = [...prevTasks, data];
-              setFilteredTasks(updatedTasks);
-              setMetrics(calculateMetrics(updatedTasks));
-              setChartData(prepareChartData(timeRange));
-              return updatedTasks;
-            }
-            
-            // Otherwise just update the existing task
-            const updatedTasks = prevTasks.map(task => 
-              task._id === data._id ? data : task
-            );
-            setFilteredTasks(updatedTasks);
-            setMetrics(calculateMetrics(updatedTasks));
-            setChartData(prepareChartData(timeRange));
-            return updatedTasks;
+            return prevTasks;
           });
         }
+        
+        // Refresh activity logs to get the latest entries with proper name mapping
+        fetchActivityLog();
+      } catch (error) {
+        console.error('Error processing real-time task update:', error);
       }
-      else if (type === 'deleted') {
-        setTasks(prevTasks => {
-          // Only remove if it exists in the current task list
-          if (prevTasks.some(task => task._id === data._id)) {
-            const updatedTasks = prevTasks.filter(task => task._id !== data._id);
-            setFilteredTasks(updatedTasks);
-            setMetrics(calculateMetrics(updatedTasks));
-            setChartData(prepareChartData(timeRange));
-            return updatedTasks;
-          }
-          return prevTasks;
-        });
-      }
-      
-      // Refresh activity logs
-      fetchActivityLog();
     };
     
     subscribeToTaskUpdates(handleTaskUpdate);
@@ -464,52 +419,38 @@ const EngineerDashboard = () => {
 
   const fetchActivityLog = async () => {
     try {
-      const response = await axios.get('/api/activity-logs/recent');
-      const currentUserFullName = currentUser ? 
-        `${currentUser.firstname} ${currentUser.lastname}` : '';
-      const currentUserEmail = currentUser?.email;
+      // Fetch activity logs and users to map emails to names
+      const [logsResponse, usersResponse] = await Promise.all([
+        axios.get('/api/activity-logs/recent'),
+        axios.get('/api/users')
+      ]);
       
-      const filteredLogs = response.data.filter(log => {
-        // For due date notifications
-        if (log.newValue?.type === 'due_date_notification') {
-          const taskAssignedTo = log.taskAssignedTo || log.newValue.taskAssignedTo;
-          return taskAssignedTo === currentUserFullName;
-        }
-        
-        // For changes made by this user
-        if (log.changedBy === currentUserFullName || log.changedBy === currentUserEmail) {
-          return true;
-        }
-        
-        // For task assignments to this user
-        const taskAssignedTo = log.newValue?.AssignedTo || log.oldValue?.AssignedTo;
-        if (taskAssignedTo === currentUserFullName || taskAssignedTo === currentUserEmail) {
-          return true;
-        }
-        
-        // For subtask assignments to this user
-        // Check if the log might be related to a subtask update
-        if (log.newValue?.subtask || log.oldValue?.subtask) {
-          // Check if subtasks are actually arrays before using them
-          const subtasksNew = Array.isArray(log.newValue?.subtask) ? log.newValue.subtask : [];
-          const subtasksOld = Array.isArray(log.oldValue?.subtask) ? log.oldValue.subtask : [];
-          
-          // Check both old and new subtasks
-          return [...subtasksNew, ...subtasksOld].some(
-            sub => sub && (sub.AssignedTo === currentUserFullName || sub.AssignedTo === currentUserEmail)
-          );
-        }
-        
-        // For direct subtask status updates
-        if (log.changeType === 'SubtaskStatusUpdated') {
-          return log.subtaskAssignedTo === currentUserFullName || 
-                 log.subtaskAssignedTo === currentUserEmail;
-        }
-        
-        return false;
+      // Create user email to name mapping
+      const userMap = {};
+      usersResponse.data.forEach(user => {
+        userMap[user.email] = `${user.firstname} ${user.lastname}`;
       });
       
-      setActivityLog(filteredLogs);
+      // Map emails to names in the activity logs
+      const mappedLogs = logsResponse.data.map(log => {
+        // Replace changedBy email with full name if it exists in userMap
+        if (log.changedBy && userMap[log.changedBy]) {
+          log.changedBy = userMap[log.changedBy];
+        }
+        
+        // If there are client emails in the log, map them to names
+        if (log.newValue?.Client && userMap[log.newValue.Client]) {
+          log.newValue.Client = userMap[log.newValue.Client];
+        }
+        
+        if (log.oldValue?.Client && userMap[log.oldValue.Client]) {
+          log.oldValue.Client = userMap[log.oldValue.Client];
+        }
+        
+        return log;
+      });
+      
+      setActivityLog(mappedLogs);
     } catch (error) {
       console.error('Error fetching activity logs:', error);
     }
@@ -845,45 +786,41 @@ const EngineerDashboard = () => {
     }
   };
 
-  const handleTaskCreated = (newTask) => {
-    const taskWithNames = {
-      ...newTask,
-      AssignedTo: newTask.AssignedTo, 
-      AssignedBy: `${currentUser.firstname} ${currentUser.lastname}`,
-      subtask: newTask.subtask?.map(sub => ({
-        ...sub,
-        AssignedTo: sub.AssignedTo
-      }))
-    };
+  const handleTaskCreated = async (newTask) => {
+    try {
+      // Fetch latest user data to map emails to names
+      const usersResponse = await axios.get('/api/users');
+      const userMap = {};
+      usersResponse.data.forEach(user => {
+        userMap[user.email] = `${user.firstname} ${user.lastname}`;
+      });
 
-    setTasks(prevTasks => {
-      const updatedTasks = [...prevTasks, taskWithNames];
-      setFilteredTasks(updatedTasks);
-      setMetrics(calculateMetrics(updatedTasks));
-      return updatedTasks;
-    });
-    
-    const newLog = {
-      _id: `task-created-${newTask._id}`,
-      type: 'task-created',
-      taskName: newTask.TaskName,
-      user: taskWithNames.AssignedBy,
-      timestamp: new Date().toISOString(),
-      message: `Task "${newTask.TaskName}" created by ${taskWithNames.AssignedBy}`
-    };
-    
-    const subtaskLogs = newTask.subtask && newTask.subtask.length > 0 ? 
-      newTask.subtask.map((subtask, index) => ({
-        _id: `subtask-added-${newTask._id}-${index}`,
-        type: 'subtask-added',
-        taskName: newTask.TaskName,
-        subtaskName: subtask.TaskName,
-        user: taskWithNames.AssignedBy,
-        timestamp: new Date().toISOString(),
-        message: `Subtask "${subtask.TaskName}" added to "${newTask.TaskName}" by ${taskWithNames.AssignedBy}`
-      })) : [];
-    
-    setActivityLog([newLog, ...subtaskLogs, ...activityLog]);
+      // Map emails to full names
+      const taskWithNames = {
+        ...newTask,
+        // Map email to name if it's an email, otherwise keep the existing value
+        AssignedTo: userMap[newTask.AssignedTo] || newTask.AssignedToName || newTask.AssignedTo || '',
+        AssignedBy: userMap[newTask.AssignedBy] || newTask.AssignedByName || newTask.AssignedBy || 
+                   (currentUser ? `${currentUser.firstname} ${currentUser.lastname}` : ''),
+        Client: userMap[newTask.Client] || newTask.ClientName || newTask.Client || '',
+        subtask: (newTask.subtask || []).map(sub => ({
+          ...sub,
+          AssignedTo: userMap[sub.AssignedTo] || sub.AssignedToName || sub.AssignedTo || ''
+        }))
+      };
+
+      setTasks(prevTasks => {
+        const updatedTasks = [...prevTasks, taskWithNames];
+        setFilteredTasks(updatedTasks);
+        setMetrics(calculateMetrics(updatedTasks));
+        return updatedTasks;
+      });
+      
+      // Fetch the activity logs from server instead of creating client-side logs
+      fetchActivityLog();
+    } catch (error) {
+      console.error('Error processing new task:', error);
+    }
   };
 
   const handleTaskUpdated = (updatedTask) => {
