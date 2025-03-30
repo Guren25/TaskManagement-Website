@@ -89,6 +89,15 @@ const PersonnelModal = ({ isOpen, onClose, personnelId, userRole }) => {
               </div>
               
               <div className="personnel-detail-row">
+                <span className="detail-label">Status:</span>
+                <span className="detail-value">
+                  <span className={`status-badge status-${personnelData.status}`}>
+                    {personnelData.status}
+                  </span>
+                </span>
+              </div>
+              
+              <div className="personnel-detail-row">
                 <span className="detail-label">Phone:</span>
                 <span className="detail-value">{personnelData.phone ? personnelData.phone : 'Not provided'}</span>
               </div>

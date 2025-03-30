@@ -100,11 +100,14 @@ const Personnel = () => {
             if (error.response?.data?.message) {
                 if (error.response.data.message.includes('email')) {
                     setFormErrors({ email: 'This email is already registered' });
+                    showNotification('This email is already registered', 'error');
                 } else {
                     setFormErrors({ general: error.response.data.message });
+                    showNotification(error.response.data.message, 'error');
                 }
             } else {
                 setFormErrors({ general: 'An error occurred. Please try again.' });
+                showNotification('An error occurred. Please try again.', 'error');
             }
         } finally {
             setIsSubmitting(false);
@@ -130,8 +133,10 @@ const Personnel = () => {
             await axios.delete(`/api/users/${userToDelete}`);
             fetchPersonnel();
             setShowDeleteModal(false);
+            showNotification('User deleted successfully');
         } catch (error) {
             console.error('Error deleting user:', error);
+            showNotification('Failed to delete user', 'error');
         }
     };
 
@@ -172,7 +177,7 @@ const Personnel = () => {
             showNotification('Verification email sent successfully');
             setShowVerificationModal(false);
         } catch (error) {
-            setFormErrors({ general: 'Failed to send verification email' });
+            showNotification('Failed to send verification email', 'error');
         }
     };
 
@@ -209,14 +214,11 @@ const Personnel = () => {
                 
                 // Show the specific error message from the server if available
                 const errorMessage = error.response.data?.message || 'Failed to update user status';
-                setFormErrors({ general: errorMessage });
                 showNotification(errorMessage, 'error');
             } else if (error.request) {
                 console.error('No response received:', error.request);
-                setFormErrors({ general: 'Network error. Please try again.' });
                 showNotification('Network error. Please try again.', 'error');
             } else {
-                setFormErrors({ general: 'Failed to update user status' });
                 showNotification('Failed to update user status', 'error');
             }
         }

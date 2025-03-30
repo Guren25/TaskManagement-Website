@@ -247,22 +247,45 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
   const fetchEngineers = async () => {
     try {
       const response = await axios.get('/api/users?role=engineer');
-      const formattedEngineers = response.data.map(engineer => ({
-        ...engineer,
-        fullName: `${engineer.firstname} ${engineer.lastname}`
-      }));
+      
+      // Log the total number of engineers before filtering
+      console.log(`Total engineers before filtering: ${response.data.length}`);
+      
+      const formattedEngineers = response.data
+        .filter(engineer => engineer.status === "verified") // Only include verified engineers
+        .map(engineer => ({
+          ...engineer,
+          fullName: `${engineer.firstname} ${engineer.lastname}`
+        }));
+      
+      // Log the number of engineers after filtering
+      console.log(`Engineers after filtering out unverified/deactivated: ${formattedEngineers.length}`);
+      console.log('Filtered out engineers:', response.data.filter(eng => eng.status !== "verified").map(eng => `${eng.firstname} ${eng.lastname} (${eng.status})`));
+      
       setEngineers(formattedEngineers);
     } catch (error) {
       console.error('Error fetching engineers:', error);
     }
   };
+  
   const fetchClients = async () => {
     try {
       const response = await axios.get('/api/users?role=client');
-      const formattedClients = response.data.map(client => ({
-        ...client,
-        fullName: `${client.firstname} ${client.lastname}`
-      }));
+      
+      // Log the total number of clients before filtering
+      console.log(`Total clients before filtering: ${response.data.length}`);
+      
+      const formattedClients = response.data
+        .filter(client => client.status === "verified") // Only include verified clients
+        .map(client => ({
+          ...client,
+          fullName: `${client.firstname} ${client.lastname}`
+        }));
+      
+      // Log the number of clients after filtering
+      console.log(`Clients after filtering out unverified/deactivated: ${formattedClients.length}`);
+      console.log('Filtered out clients:', response.data.filter(client => client.status !== "verified").map(client => `${client.firstname} ${client.lastname} (${client.status})`));
+      
       setClients(formattedClients);
     } catch (error) {
       console.error('Error fetching clients:', error);
@@ -617,6 +640,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                   </select>
                   {errors.AssignedTo && <span className="admin-task-error-message">{errors.AssignedTo}</span>}
                   {engineers.length === 0 && <span className="admin-task-error-message">No engineers found</span>}
+                  <span className="admin-task-note">Note: Only verified accounts are shown in this list.</span>
                 </div>
               </div>
 
@@ -665,6 +689,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                   </select>
                   {errors.Client && <span className="admin-task-error-message">{errors.Client}</span>}
                   {clients.length === 0 && <span className="admin-task-error-message">No clients found</span>}
+                  <span className="admin-task-note">Note: Only verified accounts are shown in this list.</span>
                 </div>
               </div>
 
@@ -768,6 +793,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                           </option>
                         ))}
                       </select>
+                      <span className="subtask-note">Only verified accounts are shown.</span>
                     </div>
                   </div>
                 ))}

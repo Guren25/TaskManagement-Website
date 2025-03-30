@@ -123,6 +123,29 @@
   gap: 0.5rem;
 }
 
+/* Status badge styles */
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  color: white;
+}
+
+.status-verified {
+  background-color: #4CAF50; /* Green */
+}
+
+.status-unverified {
+  background-color: #FF9800; /* Orange */
+}
+
+.status-deactivated {
+  background-color: #F44336; /* Red */
+}
+
 .personnel-modal-footer {
   display: flex;
   justify-content: flex-end;
