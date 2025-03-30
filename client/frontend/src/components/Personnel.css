@@ -1020,3 +1020,32 @@
     background-color: #0288D1;
 }
 
+.submit-btn.submitting {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.submit-btn:disabled, 
+.cancel-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+

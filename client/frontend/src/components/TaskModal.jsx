@@ -783,20 +783,23 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
           </div>
 
           <div className="admin-task-modal-footer">
-            <button type="button" onClick={onClose} className="admin-task-btn admin-task-btn-cancel">
+            <button type="button" onClick={onClose} className="admin-task-btn admin-task-btn-cancel" disabled={isSubmitting}>
               Cancel
             </button>
-            <button type="submit" className="admin-task-btn admin-task-btn-submit" disabled={isSubmitting}>
-              {isSubmitting 
-                ? (isEditMode 
-                  ? (isAdmin ? 'Updating...' : 'Saving Subtasks...') 
-                  : 'Creating...'
-                ) 
-                : (isEditMode 
+            <button type="submit" className={`admin-task-btn admin-task-btn-submit ${isSubmitting ? 'submitting' : ''}`} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <span className="task-spinner-icon"></span>
+                  {isEditMode 
+                    ? (isAdmin ? 'Updating...' : 'Saving Subtasks...') 
+                    : 'Creating...'
+                  }
+                </>
+              ) : (
+                isEditMode 
                   ? (isAdmin ? 'Update Task' : 'Save Subtasks')
                   : 'Create Task'
-                )
-              }
+              )}
             </button>
           </div>
         </form>

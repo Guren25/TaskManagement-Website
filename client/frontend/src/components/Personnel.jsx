@@ -35,6 +35,7 @@ const Personnel = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isManager, setIsManager] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const { user } = useAuth();
 
@@ -68,10 +69,18 @@ const Personnel = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
+        setFormErrors({});
+        
         try {
             if (editingUser) {
                 const { password, ...updateData } = formData;
                 await axios.put(`/api/users/${editingUser._id}`, updateData);
+                showNotification('Personnel updated successfully');
+                setIsModalOpen(false);
+                setEditingUser(null);
+                resetForm();
+                fetchPersonnel();
             } else {
                 const tempPassword = generateTemporaryPassword();
                 const userData = {
@@ -81,7 +90,7 @@ const Personnel = () => {
                 };
                 
                 const response = await axios.post('/api/users/register', userData);
-                showNotification(response.data.message);
+                showNotification(response.data.message || 'Personnel created successfully');
                 setIsModalOpen(false);
                 setEditingUser(null);
                 resetForm();
@@ -97,6 +106,8 @@ const Personnel = () => {
             } else {
                 setFormErrors({ general: 'An error occurred. Please try again.' });
             }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -388,11 +399,27 @@ const Personnel = () => {
                                     </select>
                                 </div>
                                 <div className="modal-actions">
-                                    <button type="button" className="cancel-btn" onClick={() => setIsModalOpen(false)}>
+                                    <button 
+                                        type="button" 
+                                        className="cancel-btn" 
+                                        onClick={() => setIsModalOpen(false)}
+                                        disabled={isSubmitting}
+                                    >
                                         Cancel
                                     </button>
-                                    <button type="submit" className="submit-btn">
-                                        {editingUser ? 'Update' : 'Add'} Personnel
+                                    <button 
+                                        type="submit" 
+                                        className={`submit-btn ${isSubmitting ? 'submitting' : ''}`}
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <span className="spinner-icon"></span>
+                                                {editingUser ? 'Updating...' : 'Creating...'}
+                                            </>
+                                        ) : (
+                                            `${editingUser ? 'Update' : 'Add'} Personnel`
+                                        )}
                                     </button>
                                 </div>
                             </form>
