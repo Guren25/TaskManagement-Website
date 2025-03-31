@@ -5,8 +5,9 @@ import '../components/Dashboards/Dashboard.css';
 const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [comments, setComments] = useState(subtask.comments || []);
+  const [comments, setComments] = useState([]);
   const [userMap, setUserMap] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch latest user data to map emails to names
   useEffect(() => {
@@ -18,29 +19,24 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
           newUserMap[user.email] = `${user.firstname} ${user.lastname}`;
         });
         setUserMap(newUserMap);
+        
+        // After getting user map, process the comments
+        if (subtask.comments) {
+          const processedComments = subtask.comments.map(comment => ({
+            ...comment,
+            author: comment.author.includes('@') ? newUserMap[comment.author] || comment.author : comment.author
+          }));
+          setComments(processedComments);
+        }
       } catch (error) {
         console.error('Error fetching users:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchUsers();
-  }, [currentUser]); // Re-fetch when currentUser changes
-
-  // Update local comments when subtask changes
-  useEffect(() => {
-    if (subtask.comments) {
-      // Update comment author names using the latest user data
-      const updatedComments = subtask.comments.map(comment => {
-        // If the comment author is an email, try to map it to the current name
-        if (comment.author.includes('@')) {
-          const newName = userMap[comment.author] || comment.author;
-          return { ...comment, author: newName };
-        }
-        return comment;
-      });
-      setComments(updatedComments);
-    }
-  }, [subtask, userMap]);
+  }, [currentUser, subtask.comments]); // Re-fetch when currentUser or comments change
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -83,7 +79,7 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
     
     setIsSubmitting(true);
     try {
-      const author = currentUser ? 
+      const authorName = currentUser ? 
         `${currentUser.firstname} ${currentUser.lastname}` : 'Anonymous User';
       
       // Use TaskID here instead of _id
@@ -92,9 +88,9 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
         text: commentText
       });
       
-      // Update local state with the new comment immediately
+      // Update local state with the new comment immediately using the name
       const newComment = {
-        author: currentUser.email, // Store email instead of name
+        author: authorName, // Use the name immediately instead of email
         text: commentText,
         timestamp: new Date()
       };
@@ -116,16 +112,18 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
       <h4 className="comments-title">Comments</h4>
       
       <div className="comments-list">
-        {comments && comments.length > 0 ? (
+        {isLoading ? (
+          <div className="loading-spinner">Loading comments...</div>
+        ) : comments && comments.length > 0 ? (
           comments.map((comment, index) => (
             <div key={index} className="comment-item">
               <div className="comment-author-avatar">
-                {getInitials(comment.author.includes('@') ? userMap[comment.author] || comment.author : comment.author)}
+                {getInitials(comment.author)}
               </div>
               <div className="comment-content">
                 <div className="comment-header">
                   <span className="comment-author">
-                    {comment.author.includes('@') ? userMap[comment.author] || comment.author : comment.author}
+                    {comment.author}
                   </span>
                   <span className="comment-timestamp">· {formatDate(comment.timestamp)}</span>
                 </div>
