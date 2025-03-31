@@ -1028,6 +1028,20 @@ const EngineerDashboard = () => {
       console.log('Cannot change status: This subtask is not assigned to you');
       return; // Not assigned to this user, don't allow status change
     }
+
+    // Check if the task has started
+    const taskStartDate = new Date(selectedTask.StartDate);
+    const currentDate = new Date();
+    
+    if (currentDate < taskStartDate) {
+      setConfirmationModal({
+        isOpen: true,
+        message: "This subtask cannot be started yet as the main task hasn't begun.",
+        confirmText: "OK",
+        onConfirm: () => setConfirmationModal({ isOpen: false, message: '', onConfirm: null })
+      });
+      return;
+    }
     
     if (subtask.Status === 'not-started') {
       setConfirmationModal({
@@ -1390,60 +1404,66 @@ const EngineerDashboard = () => {
                   <div className="task-modal-section">
                     <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
                     <div className="subtasks-list">
-                      {selectedTask.subtask.map((subtask, index) => (
-                        <div 
-                          key={index} 
-                          className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''} ${isSubtaskAssignedToCurrentUser(subtask) ? 'assignee-subtask' : ''}`}
-                          onClick={(e) => handleSubtaskClick(e, subtask, selectedTask._id)}
-                          style={{ cursor: isSubtaskAssignedToCurrentUser(subtask) ? 'pointer' : 'default' }}
-                        >
-                          <div className="subtask-content">
-                            <span className="subtask-name">{subtask.TaskName}</span>
-                            <div className="subtask-badges">
-                              <span className={`status-badge ${subtask.Status}`}>
-                                {subtask.Status.replace('-', ' ')}
-                              </span>
-                              <span className={`priority-badge ${subtask.Priority}`}>
-                                {subtask.Priority}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="subtask-detail">
-                            <span className="detail-label">Assigned To:</span>
-                            <span className="detail-value">
-                              {subtask.AssignedToName || subtask.AssignedTo}
-                              {isSubtaskAssignedToCurrentUser(subtask) && (
-                                <span className="assigned-badge">You</span>
-                              )}
-                            </span>
-                            <button 
-                              className="toggle-comments-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleSubtaskExpansion(subtask.TaskID);
-                              }}
-                            >
-                              {expandedSubtasks[subtask.TaskID] ? 'Hide Comments' : 'Show Comments'}
-                              {!expandedSubtasks[subtask.TaskID] && (
-                                <span className="comment-count">
-                                  {subtask.comments && subtask.comments.length > 0 ? subtask.comments.length : '0'}
+                      {selectedTask.subtask.map((subtask, index) => {
+                        const taskStartDate = new Date(selectedTask.StartDate);
+                        const currentDate = new Date();
+                        const isLocked = currentDate < taskStartDate;
+                        
+                        return (
+                          <div 
+                            key={index} 
+                            className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''} ${isSubtaskAssignedToCurrentUser(subtask) ? 'assignee-subtask' : ''} ${isLocked ? 'locked' : ''}`}
+                            onClick={(e) => handleSubtaskClick(e, subtask, selectedTask._id)}
+                            style={{ cursor: isSubtaskAssignedToCurrentUser(subtask) && !isLocked ? 'pointer' : 'default' }}
+                          >
+                            <div className="subtask-content">
+                              <span className="subtask-name">{subtask.TaskName}</span>
+                              <div className="subtask-badges">
+                                <span className={`status-badge ${subtask.Status}`}>
+                                  {subtask.Status.replace('-', ' ')}
                                 </span>
-                              )}
-                            </button>
-                          </div>
-                          
-                          {expandedSubtasks[subtask.TaskID] && (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <SubtaskComments 
-                                taskId={selectedTask._id} 
-                                subtask={subtask} 
-                                currentUser={currentUser}
-                                onCommentAdded={() => handleCommentAdded(selectedTask._id, subtask.TaskID)}
-                              />
+                                <span className={`priority-badge ${subtask.Priority}`}>
+                                  {subtask.Priority}
+                                </span>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            <div className="subtask-detail">
+                              <span className="detail-label">Assigned To:</span>
+                              <span className="detail-value">
+                                {subtask.AssignedToName || subtask.AssignedTo}
+                                {isSubtaskAssignedToCurrentUser(subtask) && (
+                                  <span className="assigned-badge">You</span>
+                                )}
+                              </span>
+                              <button 
+                                className="toggle-comments-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSubtaskExpansion(subtask.TaskID);
+                                }}
+                              >
+                                {expandedSubtasks[subtask.TaskID] ? 'Hide Comments' : 'Show Comments'}
+                                {!expandedSubtasks[subtask.TaskID] && (
+                                  <span className="comment-count">
+                                    {subtask.comments && subtask.comments.length > 0 ? subtask.comments.length : '0'}
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+                            
+                            {expandedSubtasks[subtask.TaskID] && (
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <SubtaskComments 
+                                  taskId={selectedTask._id} 
+                                  subtask={subtask} 
+                                  currentUser={currentUser}
+                                  onCommentAdded={() => handleCommentAdded(selectedTask._id, subtask.TaskID)}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
