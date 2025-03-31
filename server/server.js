@@ -111,17 +111,6 @@ app.use((err, req, res, next) => {
 
 const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
 
-
-//first login admin/manager
-cron.schedule('0 9 * * *', async () => {
-  console.log('Running daily due date check...');
-  try {
-    await TaskController.checkDueDates();
-  } catch (error) {
-    console.error('Error in cron job:', error);
-  }
-});
-
 //ONLY USE FOR TESTING IN DEVELOPMENT MODE
 /*if (isDevelopment) {
   console.log('Development mode: Setting up test due date checks');

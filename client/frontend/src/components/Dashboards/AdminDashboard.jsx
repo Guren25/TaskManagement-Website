@@ -291,8 +291,8 @@ const AdminDashboard = () => {
         const lastCheckTime = localStorage.getItem('lastDueDateCheck');
         const now = Date.now();
         
-        // Only check if it's been more than 30 minutes since the last check
-        if (!lastCheckTime || (now - parseInt(lastCheckTime)) > 30 * 60 * 1000) {
+        // Only check if it's been more than 24 hours since the last check
+        if (!lastCheckTime || (now - parseInt(lastCheckTime)) > 24 * 60 * 60 * 1000) {
           setIsCheckingDueDates(true);
           axios.post('/api/tasks/check-due-dates')
             .then(() => {
