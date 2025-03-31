@@ -1760,26 +1760,51 @@ input[type="date"].filter-select {
 }
 
 .due-date-badge {
-  padding: 0.25rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  margin-left: auto;
 }
 
-.due-critical {
-  background-color: rgba(255, 59, 48, 0.1);
-  color: #ff3b30;
+.start-date-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
-.due-warning {
+.start-date-badge.start-soon {
+  background-color: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+}
+
+.start-date-badge.start-notice {
   background-color: rgba(255, 149, 0, 0.1);
   color: #ff9500;
 }
 
-.due-notice {
-  background-color: rgba(0, 122, 255, 0.1);
-  color: #007aff;
+.start-date-badge.start-future {
+  background-color: rgba(88, 86, 214, 0.1);
+  color: #5856d6;
+}
+
+.due-date-badge.due-critical {
+  background-color: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+}
+
+.due-date-badge.due-warning {
+  background-color: rgba(255, 149, 0, 0.1);
+  color: #ff9500;
+}
+
+.due-date-badge.due-notice {
+  background-color: rgba(255, 149, 0, 0.1);
+  color: #ff9500;
 }
 
 .log-badge.notification {

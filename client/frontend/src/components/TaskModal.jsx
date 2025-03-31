@@ -708,7 +708,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                       });
                       console.log(`Updated main task assigned to:`, engineer?.fullName || 'none');
                     }}
-                    disabled={isEditMode}
+                    disabled={isEditMode && !isAdmin}
                   >
                     <option value="">
                       {taskData.AssignedToName ? `Currently: ${taskData.AssignedToName}` : 'Select an engineer'}

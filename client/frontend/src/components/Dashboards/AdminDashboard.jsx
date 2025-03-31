@@ -48,16 +48,35 @@ const TaskCard = ({ task, onTaskClick }) => {
     const daysUntilDue = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
 
     if (daysUntilDue <= 1) {
-      return { class: 'due-critical', text: 'Due tomorrow!' };
+      return { class: 'due-critical', text: daysUntilDue === 1 ? 'Due tomorrow!' : 'Due today!' };
     } else if (daysUntilDue <= 3) {
-      return { class: 'due-warning', text: `Due in ${daysUntilDue} days` };
+      return { class: 'due-warning', text: `Due in ${daysUntilDue} ${daysUntilDue === 1 ? 'day' : 'days'}` };
     } else if (daysUntilDue <= 7) {
-      return { class: 'due-notice', text: `Due in ${daysUntilDue} days` };
+      return { class: 'due-notice', text: `Due in ${daysUntilDue} ${daysUntilDue === 1 ? 'day' : 'days'}` };
     }
     return null;
   };
 
+  const getStartDateStatus = (startDate) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const daysUntilStart = Math.ceil((start - now) / (1000 * 60 * 60 * 24));
+    const weeksUntilStart = Math.floor(daysUntilStart / 7);
+    const monthsUntilStart = Math.floor(daysUntilStart / 30);
+
+    if (daysUntilStart <= 0) {
+      return null; // Task has already started
+    } else if (daysUntilStart <= 7) {
+      return { class: 'start-soon', text: `Starts in ${daysUntilStart} ${daysUntilStart === 1 ? 'day' : 'days'}` };
+    } else if (weeksUntilStart <= 4) {
+      return { class: 'start-notice', text: `Starts in ${weeksUntilStart} ${weeksUntilStart === 1 ? 'week' : 'weeks'}` };
+    } else {
+      return { class: 'start-future', text: `Starts in ${monthsUntilStart} ${monthsUntilStart === 1 ? 'month' : 'months'}` };
+    }
+  };
+
   const dueStatus = getDueDateStatus(task.EndDate);
+  const startStatus = getStartDateStatus(task.StartDate);
 
   return (
     <div className="task-card" onClick={() => onTaskClick(task)}>
@@ -88,6 +107,11 @@ const TaskCard = ({ task, onTaskClick }) => {
             <span className={`status-badge ${task.Status}`}>
               {task.Status.replace('-', ' ')}
             </span>
+            {startStatus && (
+              <div className={`start-date-badge ${startStatus.class}`}>
+                {startStatus.text}
+              </div>
+            )}
             {dueStatus && (
               <div className={`due-date-badge ${dueStatus.class}`}>
                 {dueStatus.text}
