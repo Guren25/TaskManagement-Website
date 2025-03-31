@@ -625,6 +625,72 @@ const sendSubtaskRemovalEmail = async (recipientEmail, engineerName, subtaskName
     }
 };
 
+const sendTaskReassignmentEmail = async (recipientEmail, taskDetails) => {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: recipientEmail,
+            subject: `Task Reassignment: ${taskDetails.TaskName}`,
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Task Reassignment</title>
+                    <style>${emailStyles}</style>
+                </head>
+                <body>
+                    <div class="email-container">
+                        ${createEmailHeader('Task Reassignment')}
+                        <div class="email-body">
+                            <h2>You have been assigned to a task</h2>
+                            <p>Hello,</p>
+                            <p>You have been assigned to the following task. Please review the details below:</p>
+                            
+                            <div class="detail-row">
+                                <span class="label">Task Name:</span> ${taskDetails.TaskName}
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Description:</span> ${taskDetails.Description}
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Location:</span> ${taskDetails.Location}
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Priority:</span> 
+                                <span style="text-transform: capitalize;">${taskDetails.Priority}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Start Date:</span> ${new Date(taskDetails.StartDate).toLocaleDateString()}
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">End Date:</span> ${new Date(taskDetails.EndDate).toLocaleDateString()}
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Assigned By:</span> ${taskDetails.AssignedByName || taskDetails.AssignedBy}
+                            </div>
+                            
+                            <div class="note">
+                                Please log in to the system to view more details and start working on your task.
+                            </div>
+                        </div>
+                        ${createEmailFooter()}
+                    </div>
+                </body>
+                </html>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Reassignment email sent successfully:', info.response);
+        return true;
+    } catch (error) {
+        console.error('Error sending reassignment email:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     sendTaskAssignmentEmail,
     sendSubtaskAssignmentEmail,
@@ -634,5 +700,6 @@ module.exports = {
     sendVerificationEmail,
     verifyConnection,
     sendPasswordResetEmail,
-    sendSubtaskRemovalEmail
+    sendSubtaskRemovalEmail,
+    sendTaskReassignmentEmail
 }; 

@@ -1,5 +1,5 @@
 const Task = require('../models/Task');
-const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail, sendDueDateEmail, sendSubtaskDueDateEmail } = require('../utils/emailService');
+const { sendTaskAssignmentEmail, sendSubtaskAssignmentEmail, sendDueDateEmail, sendSubtaskDueDateEmail, sendTaskReassignmentEmail } = require('../utils/emailService');
 const ActivityLog = require('../models/ActivityLog');
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
@@ -192,6 +192,59 @@ const taskController = {
             
             if (updateData.subtask) {
                 updateData.percentage = calculateTaskPercentage(updateData.subtask);
+                
+                // Check for new or modified subtasks
+                const oldSubtasks = oldTask.subtask || [];
+                const newSubtasks = updateData.subtask;
+                
+                // Find new subtasks
+                const newSubtaskAssignments = newSubtasks.filter(newSubtask => 
+                    !oldSubtasks.some(oldSubtask => oldSubtask.TaskID === newSubtask.TaskID)
+                );
+                
+                // Find modified subtasks where the assigned engineer changed
+                const modifiedSubtasks = newSubtasks.filter(newSubtask => {
+                    const oldSubtask = oldSubtasks.find(old => old.TaskID === newSubtask.TaskID);
+                    return oldSubtask && oldSubtask.AssignedTo !== newSubtask.AssignedTo;
+                });
+                
+                // Send emails for new subtask assignments
+                for (const subtask of newSubtaskAssignments) {
+                    try {
+                        await sendSubtaskAssignmentEmail(subtask.AssignedTo, updateData, subtask);
+                    } catch (emailError) {
+                        console.error('Error sending new subtask assignment email:', emailError);
+                    }
+                }
+                
+                // Send emails for modified subtask assignments
+                for (const subtask of modifiedSubtasks) {
+                    try {
+                        await sendSubtaskAssignmentEmail(subtask.AssignedTo, updateData, subtask);
+                    } catch (emailError) {
+                        console.error('Error sending modified subtask assignment email:', emailError);
+                    }
+                }
+            }
+            
+            // Check if the engineer has been changed
+            if (updateData.AssignedTo && updateData.AssignedTo !== oldTask.AssignedTo) {
+                try {
+                    // Send email to the new engineer
+                    await sendTaskReassignmentEmail(updateData.AssignedTo, {
+                        ...updateData,
+                        TaskName: updateData.TaskName || oldTask.TaskName,
+                        Description: updateData.Description || oldTask.Description,
+                        Location: updateData.Location || oldTask.Location,
+                        Priority: updateData.Priority || oldTask.Priority,
+                        StartDate: updateData.StartDate || oldTask.StartDate,
+                        EndDate: updateData.EndDate || oldTask.EndDate,
+                        AssignedBy: updateData.AssignedBy || oldTask.AssignedBy,
+                        AssignedByName: updateData.AssignedByName || oldTask.AssignedByName
+                    });
+                } catch (emailError) {
+                    console.error('Error sending reassignment email:', emailError);
+                }
             }
             
             if (updateData.Status === 'completed' && oldTask.Status !== 'completed') {
