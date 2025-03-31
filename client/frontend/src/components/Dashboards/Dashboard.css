@@ -2245,3 +2245,39 @@ select[aria-label*="days"]:focus {
 .due-date-check-indicator .loading-spinner {
   display: none;
 }
+
+/* Update the lock icon selector to only appear in the dashboard view */
+.dashboard-main .subtask-item.locked::before {
+  content: "🔒";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #666;
+}
+
+/* Remove general locked styles from modal */
+.modal-content .subtask-item.locked {
+  opacity: 1;
+  cursor: default;
+  background-color: inherit;
+  border: inherit;
+}
+
+.modal-content .subtask-item.locked:hover {
+  transform: inherit;
+  box-shadow: inherit;
+}
+
+.modal-content .subtask-item.locked::before {
+  display: none;
+}
+
+.modal-content .subtask-item.locked .subtask-content {
+  padding-left: inherit;
+}
+
+.modal-content .subtask-item.locked .subtask-badges {
+  opacity: 1;
+}

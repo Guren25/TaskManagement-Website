@@ -1405,16 +1405,12 @@ const EngineerDashboard = () => {
                     <h3 className="task-modal-section-title">Subtasks ({selectedTask.subtask.length})</h3>
                     <div className="subtasks-list">
                       {selectedTask.subtask.map((subtask, index) => {
-                        const taskStartDate = new Date(selectedTask.StartDate);
-                        const currentDate = new Date();
-                        const isLocked = currentDate < taskStartDate;
-                        
                         return (
                           <div 
                             key={index} 
-                            className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''} ${isSubtaskAssignedToCurrentUser(subtask) ? 'assignee-subtask' : ''} ${isLocked ? 'locked' : ''}`}
+                            className={`subtask-item ${expandedSubtasks[subtask.TaskID] ? 'subtask-item-expanded' : ''} ${isSubtaskAssignedToCurrentUser(subtask) ? 'assignee-subtask' : ''}`}
                             onClick={(e) => handleSubtaskClick(e, subtask, selectedTask._id)}
-                            style={{ cursor: isSubtaskAssignedToCurrentUser(subtask) && !isLocked ? 'pointer' : 'default' }}
+                            style={{ cursor: isSubtaskAssignedToCurrentUser(subtask) ? 'pointer' : 'default' }}
                           >
                             <div className="subtask-content">
                               <span className="subtask-name">{subtask.TaskName}</span>
