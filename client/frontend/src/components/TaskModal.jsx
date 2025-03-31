@@ -726,9 +726,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                       <option value="" disabled>No engineers available</option>
                     )}
                   </select>
-                  {errors.AssignedTo && <span className="admin-task-error-message">{errors.AssignedTo}</span>}
-                  {engineers.length === 0 && <span className="admin-task-error-message">No engineers found</span>}
-                  <span className="admin-task-note">Note: Only verified accounts are shown in this list.</span>
+                  {errors.AssignedTo && <span className="error-message">{errors.AssignedTo}</span>}
                 </div>
               </div>
 
@@ -775,9 +773,7 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                       <option value="" disabled>No clients available</option>
                     )}
                   </select>
-                  {errors.Client && <span className="admin-task-error-message">{errors.Client}</span>}
-                  {clients.length === 0 && <span className="admin-task-error-message">No clients found</span>}
-                  <span className="admin-task-note">Note: Only verified accounts are shown in this list.</span>
+                  {errors.Client && <span className="error-message">{errors.Client}</span>}
                 </div>
               </div>
 
@@ -881,7 +877,6 @@ const TaskModal = ({ isOpen, onClose, onTaskCreated, onTaskUpdated, existingTask
                           </option>
                         ))}
                       </select>
-                      <span className="subtask-note">Only verified accounts are shown.</span>
                     </div>
                   </div>
                 ))}
