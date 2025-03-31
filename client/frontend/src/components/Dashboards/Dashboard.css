@@ -2306,3 +2306,23 @@ select[aria-label*="days"]:focus {
 .modal-content .subtask-item.locked .subtask-badges {
   opacity: 1;
 }
+
+.comments-disabled-message {
+  padding: 20px;
+  text-align: center;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  margin: 10px 15px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.error-message {
+  padding: 10px 15px;
+  margin: 0 15px 10px;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  color: #c62828;
+  font-size: 0.9rem;
+}

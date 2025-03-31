@@ -12,6 +12,24 @@ const calculateTaskPercentage = (subtasks) => {
     return Math.round((completedSubtasks / totalSubtasks) * 100);
 };
 
+const areCommentsEnabled = (task) => {
+    const currentDate = new Date();
+    const startDate = new Date(task.StartDate);
+    return currentDate >= startDate;
+};
+
+const addCommentsEnabledFlag = (task) => {
+    const taskObj = task.toObject ? task.toObject() : { ...task };
+    taskObj.commentsEnabled = areCommentsEnabled(task);
+    if (taskObj.subtask) {
+        taskObj.subtask = taskObj.subtask.map(subtask => ({
+            ...subtask,
+            commentsEnabled: taskObj.commentsEnabled
+        }));
+    }
+    return taskObj;
+};
+
 const checkDueDates = async () => {
   try {
     const tasks = await Task.find({ Status: { $ne: 'completed' } });
@@ -98,7 +116,7 @@ const taskController = {
         try {
             const tasks = await Task.find();
             const tasksWithPercentage = tasks.map(task => {
-                const taskObj = task.toObject();
+                const taskObj = addCommentsEnabledFlag(task);
                 taskObj.percentage = calculateTaskPercentage(taskObj.subtask);
                 return taskObj;
             });
@@ -114,7 +132,7 @@ const taskController = {
             if (!task) {
                 return res.status(404).json({ message: "Task not found" });
             }
-            const taskObj = task.toObject();
+            const taskObj = addCommentsEnabledFlag(task);
             taskObj.percentage = calculateTaskPercentage(taskObj.subtask);
             res.status(200).json(taskObj);
         } catch (error) {
@@ -190,6 +208,9 @@ const taskController = {
             const oldTask = await Task.findById(req.params.id);
             const updateData = req.body;
             
+            // Array to store all activity logs
+            const activityLogs = [];
+            
             if (updateData.subtask) {
                 updateData.percentage = calculateTaskPercentage(updateData.subtask);
                 
@@ -197,10 +218,16 @@ const taskController = {
                 const oldSubtasks = oldTask.subtask || [];
                 const newSubtasks = updateData.subtask;
                 
-                // Find new subtasks
-                const newSubtaskAssignments = newSubtasks.filter(newSubtask => 
-                    !oldSubtasks.some(oldSubtask => oldSubtask.TaskID === newSubtask.TaskID)
-                );
+                // Find new subtasks - update the logic to properly identify new subtasks
+                const newSubtaskAssignments = newSubtasks.filter(newSubtask => {
+                    // Check if this subtask exists in oldSubtasks
+                    const existingSubtask = oldSubtasks.find(old => 
+                        // Compare by TaskID if it exists, otherwise by TaskName and AssignedTo
+                        (old.TaskID && old.TaskID === newSubtask.TaskID) || 
+                        (old.TaskName === newSubtask.TaskName && old.AssignedTo === newSubtask.AssignedTo)
+                    );
+                    return !existingSubtask;
+                });
                 
                 // Find modified subtasks where the assigned engineer changed
                 const modifiedSubtasks = newSubtasks.filter(newSubtask => {
@@ -208,29 +235,63 @@ const taskController = {
                     return oldSubtask && oldSubtask.AssignedTo !== newSubtask.AssignedTo;
                 });
                 
-                // Send emails for new subtask assignments
+                // Log and send emails for new subtask assignments
                 for (const subtask of newSubtaskAssignments) {
                     try {
                         await sendSubtaskAssignmentEmail(subtask.AssignedTo, updateData, subtask);
+                        activityLogs.push({
+                            logID: uuidv4(),
+                            taskID: oldTask._id,
+                            changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                            changeType: 'Updated',
+                            oldValue: {
+                                type: 'subtask_added',
+                                TaskName: oldTask.TaskName
+                            },
+                            newValue: {
+                                type: 'subtask_added',
+                                TaskName: oldTask.TaskName,
+                                SubtaskName: subtask.TaskName,
+                                message: `Added new subtask "${subtask.TaskName}" assigned to ${subtask.AssignedTo}`
+                            },
+                            timestamp: new Date()
+                        });
                     } catch (emailError) {
                         console.error('Error sending new subtask assignment email:', emailError);
                     }
                 }
                 
-                // Send emails for modified subtask assignments
+                // Log and send emails for modified subtask assignments
                 for (const subtask of modifiedSubtasks) {
                     try {
+                        const oldSubtask = oldSubtasks.find(old => old.TaskID === subtask.TaskID);
                         await sendSubtaskAssignmentEmail(subtask.AssignedTo, updateData, subtask);
+                        activityLogs.push({
+                            logID: uuidv4(),
+                            taskID: oldTask._id,
+                            changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                            changeType: 'Updated',
+                            oldValue: { 
+                                type: 'subtask_reassigned',
+                                AssignedTo: oldSubtask.AssignedTo,
+                                TaskName: subtask.TaskName
+                            },
+                            newValue: {
+                                type: 'subtask_reassigned',
+                                TaskName: subtask.TaskName,
+                                message: `Reassigned subtask "${subtask.TaskName}" from ${oldSubtask.AssignedTo} to ${subtask.AssignedTo}`
+                            },
+                            timestamp: new Date()
+                        });
                     } catch (emailError) {
                         console.error('Error sending modified subtask assignment email:', emailError);
                     }
                 }
             }
             
-            // Check if the engineer has been changed
+            // Log engineer reassignment
             if (updateData.AssignedTo && updateData.AssignedTo !== oldTask.AssignedTo) {
                 try {
-                    // Send email to the new engineer
                     await sendTaskReassignmentEmail(updateData.AssignedTo, {
                         ...updateData,
                         TaskName: updateData.TaskName || oldTask.TaskName,
@@ -242,22 +303,118 @@ const taskController = {
                         AssignedBy: updateData.AssignedBy || oldTask.AssignedBy,
                         AssignedByName: updateData.AssignedByName || oldTask.AssignedByName
                     });
+                    activityLogs.push({
+                        logID: uuidv4(),
+                        taskID: oldTask._id,
+                        changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                        changeType: 'Updated',
+                        oldValue: { 
+                            type: 'task_reassigned',
+                            AssignedTo: oldTask.AssignedTo,
+                            TaskName: oldTask.TaskName
+                        },
+                        newValue: {
+                            type: 'task_reassigned',
+                            TaskName: oldTask.TaskName,
+                            message: `Reassigned task "${oldTask.TaskName}" from ${oldTask.AssignedTo} to ${updateData.AssignedTo}`
+                        },
+                        timestamp: new Date()
+                    });
                 } catch (emailError) {
                     console.error('Error sending reassignment email:', emailError);
                 }
             }
             
+            // Log client reassignment
+            if (updateData.Client && updateData.Client !== oldTask.Client) {
+                activityLogs.push({
+                    logID: uuidv4(),
+                    taskID: oldTask._id,
+                    changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                    changeType: 'Updated',
+                    oldValue: { 
+                        type: 'client_changed',
+                        Client: oldTask.Client,
+                        TaskName: oldTask.TaskName
+                    },
+                    newValue: {
+                        type: 'client_changed',
+                        TaskName: oldTask.TaskName,
+                        message: `Changed client for task "${oldTask.TaskName}" from ${oldTask.Client} to ${updateData.Client}`
+                    },
+                    timestamp: new Date()
+                });
+            }
+            
+            // Log priority changes
+            if (updateData.Priority && updateData.Priority !== oldTask.Priority) {
+                activityLogs.push({
+                    logID: uuidv4(),
+                    taskID: oldTask._id,
+                    changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                    changeType: 'Updated',
+                    oldValue: { Priority: oldTask.Priority },
+                    newValue: {
+                        message: `Changed priority from ${oldTask.Priority} to ${updateData.Priority}`
+                    },
+                    timestamp: new Date()
+                });
+            }
+            
+            // Log date changes
+            if (updateData.StartDate && updateData.StartDate !== oldTask.StartDate) {
+                const oldDate = new Date(oldTask.StartDate);
+                const newDate = new Date(updateData.StartDate);
+                
+                // Only log if the dates are actually different
+                if (oldDate.getTime() !== newDate.getTime()) {
+                    activityLogs.push({
+                        logID: uuidv4(),
+                        taskID: oldTask._id,
+                        changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                        changeType: 'Updated',
+                        oldValue: { StartDate: oldTask.StartDate },
+                        newValue: {
+                            message: `Changed start date from ${oldDate.toLocaleDateString()} to ${newDate.toLocaleDateString()}`
+                        },
+                        timestamp: new Date()
+                    });
+                }
+            }
+            
+            if (updateData.EndDate && updateData.EndDate !== oldTask.EndDate) {
+                const oldDate = new Date(oldTask.EndDate);
+                const newDate = new Date(updateData.EndDate);
+                
+                // Only log if the dates are actually different
+                if (oldDate.getTime() !== newDate.getTime()) {
+                    activityLogs.push({
+                        logID: uuidv4(),
+                        taskID: oldTask._id,
+                        changedBy: updateData.AssignedBy || updateData.ChangedBy,
+                        changeType: 'Updated',
+                        oldValue: { EndDate: oldTask.EndDate },
+                        newValue: {
+                            message: `Changed due date from ${oldDate.toLocaleDateString()} to ${newDate.toLocaleDateString()}`
+                        },
+                        timestamp: new Date()
+                    });
+                }
+            }
+            
             if (updateData.Status === 'completed' && oldTask.Status !== 'completed') {
-                const activityLog = new ActivityLog({
+                activityLogs.push({
                     logID: uuidv4(),
                     taskID: oldTask._id,
                     changedBy: updateData.AssignedBy || updateData.ChangedBy,
                     changeType: 'Updated',
                     oldValue: { Status: oldTask.Status },
-                    newValue: { Status: 'completed' },
+                    newValue: { 
+                        Status: 'completed',
+                        message: 'Task marked as completed'
+                    },
                     timestamp: new Date()
                 });
-                await activityLog.save();
             }
             
             const updatedTask = await Task.findByIdAndUpdate(
@@ -269,27 +426,23 @@ const taskController = {
             if (!updatedTask) {
                 return res.status(404).json({ message: "Task not found" });
             }
-            const activityLog = new ActivityLog({
-                logID: uuidv4(),
-                taskID: updatedTask._id,
-                changedBy: updateData.AssignedBy || updateData.ChangedBy,
-                changeType: 'Updated',
-                oldValue: oldTask,
-                newValue: updatedTask,
-                timestamp: new Date()
-            });
-            await activityLog.save();
+            
+            // Save all activity logs
+            await Promise.all(activityLogs.map(log => new ActivityLog(log).save()));
+            
+            // Add comments enabled flag and emit socket event
+            const taskWithCommentsFlag = addCommentsEnabledFlag(updatedTask);
             
             // Emit socket event for task update
             const io = req.app.get('io');
             if (io) {
-                io.emit('taskUpdated', updatedTask);
+                io.emit('taskUpdated', taskWithCommentsFlag);
                 console.log('Socket event emitted: taskUpdated');
             } else {
                 console.log('No socket instance found on app');
             }
             
-            res.status(200).json(updatedTask);
+            res.status(200).json(taskWithCommentsFlag);
         } catch (error) {
             res.status(500).json({ message: "Error updating task", error: error.message });
         }
@@ -668,6 +821,17 @@ const taskController = {
             const task = await Task.findById(taskId);
             if (!task) {
                 return res.status(404).json({ message: "Task not found" });
+            }
+
+            // Check if the task has started
+            const currentDate = new Date();
+            const startDate = new Date(task.StartDate);
+            
+            if (currentDate < startDate) {
+                return res.status(403).json({ 
+                    message: `Comments are disabled until the task starts on ${startDate.toLocaleDateString()}`,
+                    startDate: task.StartDate
+                });
             }
 
             // Find subtask by TaskID instead of _id

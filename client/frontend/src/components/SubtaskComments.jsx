@@ -8,6 +8,7 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
   const [comments, setComments] = useState([]);
   const [userMap, setUserMap] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Fetch latest user data to map emails to names
   useEffect(() => {
@@ -30,13 +31,14 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
         }
       } catch (error) {
         console.error('Error fetching users:', error);
+        setError('Error loading user data');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchUsers();
-  }, [currentUser, subtask.comments]); // Re-fetch when currentUser or comments change
+  }, [currentUser, subtask.comments]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -78,19 +80,19 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
     if (!commentText.trim()) return;
     
     setIsSubmitting(true);
+    setError(null);
     try {
       const authorName = currentUser ? 
         `${currentUser.firstname} ${currentUser.lastname}` : 'Anonymous User';
       
-      // Use TaskID here instead of _id
       const response = await axios.post(`/api/tasks/${taskId}/subtask/${subtask.TaskID}/comment`, {
-        author: currentUser.email, // Store email instead of name
+        author: currentUser.email,
         text: commentText
       });
       
       // Update local state with the new comment immediately using the name
       const newComment = {
-        author: authorName, // Use the name immediately instead of email
+        author: authorName,
         text: commentText,
         timestamp: new Date()
       };
@@ -102,6 +104,11 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
       }
     } catch (error) {
       console.error('Error adding comment:', error);
+      if (error.response?.status === 403) {
+        setError(error.response.data.message);
+      } else {
+        setError('Failed to add comment. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -110,6 +117,12 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
   return (
     <div className="subtask-comments-section">
       <h4 className="comments-title">Comments</h4>
+      
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
       
       <div className="comments-list">
         {isLoading ? (
