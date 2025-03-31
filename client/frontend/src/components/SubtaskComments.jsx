@@ -6,11 +6,41 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comments, setComments] = useState(subtask.comments || []);
+  const [userMap, setUserMap] = useState({});
+
+  // Fetch latest user data to map emails to names
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get('/api/users');
+        const newUserMap = {};
+        response.data.forEach(user => {
+          newUserMap[user.email] = `${user.firstname} ${user.lastname}`;
+        });
+        setUserMap(newUserMap);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+
+    fetchUsers();
+  }, [currentUser]); // Re-fetch when currentUser changes
 
   // Update local comments when subtask changes
   useEffect(() => {
-    setComments(subtask.comments || []);
-  }, [subtask]);
+    if (subtask.comments) {
+      // Update comment author names using the latest user data
+      const updatedComments = subtask.comments.map(comment => {
+        // If the comment author is an email, try to map it to the current name
+        if (comment.author.includes('@')) {
+          const newName = userMap[comment.author] || comment.author;
+          return { ...comment, author: newName };
+        }
+        return comment;
+      });
+      setComments(updatedComments);
+    }
+  }, [subtask, userMap]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -58,13 +88,13 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
       
       // Use TaskID here instead of _id
       const response = await axios.post(`/api/tasks/${taskId}/subtask/${subtask.TaskID}/comment`, {
-        author,
+        author: currentUser.email, // Store email instead of name
         text: commentText
       });
       
       // Update local state with the new comment immediately
       const newComment = {
-        author,
+        author: currentUser.email, // Store email instead of name
         text: commentText,
         timestamp: new Date()
       };
@@ -90,11 +120,13 @@ const SubtaskComments = ({ taskId, subtask, currentUser, onCommentAdded }) => {
           comments.map((comment, index) => (
             <div key={index} className="comment-item">
               <div className="comment-author-avatar">
-                {getInitials(comment.author)}
+                {getInitials(comment.author.includes('@') ? userMap[comment.author] || comment.author : comment.author)}
               </div>
               <div className="comment-content">
                 <div className="comment-header">
-                  <span className="comment-author">{comment.author}</span>
+                  <span className="comment-author">
+                    {comment.author.includes('@') ? userMap[comment.author] || comment.author : comment.author}
+                  </span>
                   <span className="comment-timestamp">· {formatDate(comment.timestamp)}</span>
                 </div>
                 <div className="comment-text">{comment.text}</div>
