@@ -150,6 +150,7 @@ const AdminDashboard = () => {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingDueDates, setIsCheckingDueDates] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [activityLog, setActivityLog] = useState([]);
   const [expandedFilters, setExpandedFilters] = useState(false);
@@ -260,6 +261,20 @@ const AdminDashboard = () => {
       const userRole = userData.role?.toLowerCase();
       setIsUserAdmin(userRole === 'admin' || userRole === 'administrator');
       setIsUserManager(false);
+
+      // If user is admin, trigger due date check
+      if (userRole === 'admin' || userRole === 'administrator') {
+        setIsCheckingDueDates(true);
+        axios.post('/api/tasks/check-due-dates')
+          .then(() => {
+            console.log('Due date check completed');
+            setIsCheckingDueDates(false);
+          })
+          .catch(error => {
+            console.error('Error checking due dates:', error);
+            setIsCheckingDueDates(false);
+          });
+      }
     }
   }, []);
 

@@ -229,17 +229,15 @@ const userController = {
             const userResponse = user.toObject();
             delete userResponse.password;
 
-            // If user is admin, automatically trigger due date check
+            // If user is admin, trigger due date check asynchronously
             if (user.role === 'admin') {
-                try {
-                    // Import TaskController using require only when needed
-                    const TaskController = require('./TaskController');
-                    await TaskController.checkDueDates();
-                    console.log('Due dates check triggered by admin login');
-                } catch (checkError) {
-                    console.error('Error checking due dates during login:', checkError);
-                    // Don't block login if due date check fails
-                }
+                // Import TaskController using require only when needed
+                const TaskController = require('./TaskController');
+                // Run due date check in the background
+                TaskController.checkDueDates().catch(error => {
+                    console.error('Error checking due dates after login:', error);
+                });
+                console.log('Due dates check triggered by admin login');
             }
 
             res.status(200).json({
