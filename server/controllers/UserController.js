@@ -7,6 +7,7 @@ const dns = require("dns");
 const { promisify } = require('util');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const ActivityLog = require("../models/ActivityLog");
 
 const validateEmail = async (email) => {
     try {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const taskController = require('../controllers/TaskController');
+const ActivityLog = require('../models/ActivityLog');
 
 
 router.get('/', taskController.getAllTasks);

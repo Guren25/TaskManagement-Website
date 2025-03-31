@@ -7,7 +7,10 @@ const activityLogSchema = new mongoose.Schema({
   },
   taskID: {
     type: String,
-    required: true
+    required: function() {
+      // Only require taskID if it's not a system-level operation
+      return this.changeType !== 'SystemCheck';
+    }
   },
   changedBy: {
     type: String,
@@ -15,7 +18,7 @@ const activityLogSchema = new mongoose.Schema({
   },
   changeType: {
     type: String,
-    enum: ['Created', 'Updated', 'Deleted', 'DueDate'],
+    enum: ['Created', 'Updated', 'Deleted', 'DueDate', 'SystemCheck'],
     required: true
   },
   oldValue: {

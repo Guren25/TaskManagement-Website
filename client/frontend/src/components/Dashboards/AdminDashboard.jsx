@@ -262,18 +262,24 @@ const AdminDashboard = () => {
       setIsUserAdmin(userRole === 'admin' || userRole === 'administrator');
       setIsUserManager(false);
 
-      // If user is admin, trigger due date check
+      // If user is admin, check if we should trigger due date check
       if (userRole === 'admin' || userRole === 'administrator') {
-        setIsCheckingDueDates(true);
-        axios.post('/api/tasks/check-due-dates')
-          .then(() => {
-            console.log('Due date check completed');
-            setIsCheckingDueDates(false);
-          })
-          .catch(error => {
-            console.error('Error checking due dates:', error);
-            setIsCheckingDueDates(false);
-          });
+        const lastCheckTime = localStorage.getItem('lastDueDateCheck');
+        const now = Date.now();
+        
+        // Only check if it's been more than 30 minutes since the last check
+        if (!lastCheckTime || (now - parseInt(lastCheckTime)) > 30 * 60 * 1000) {
+          setIsCheckingDueDates(true);
+          axios.post('/api/tasks/check-due-dates')
+            .then(() => {
+              localStorage.setItem('lastDueDateCheck', now.toString());
+              setIsCheckingDueDates(false);
+            })
+            .catch(error => {
+              console.error('Error checking due dates:', error);
+              setIsCheckingDueDates(false);
+            });
+        }
       }
     }
   }, []);
